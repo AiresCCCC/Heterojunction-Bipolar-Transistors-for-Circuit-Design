@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: true
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+  },
+  chtml: {
+    scale: 1
+  },
+  startup: {
+    pageReady: () => MathJax.startup.defaultPageReady().then(() => {
+      const updateFormulaOverflow = () => {
+        document.querySelectorAll('.math-display').forEach((formula) => {
+          const math = formula.querySelector('mjx-math') || formula.querySelector('mjx-container');
+          const mathWidth = math ? math.getBoundingClientRect().width : 0;
+          formula.classList.toggle('math-overflow', mathWidth > formula.clientWidth + 4);
+        });
+      };
+      updateFormulaOverflow();
+      if (window.ResizeObserver) {
+        const observer = new ResizeObserver(updateFormulaOverflow);
+        document.querySelectorAll('.math-display').forEach((formula) => observer.observe(formula));
+      }
+    })
+  }
+};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第2章 微波器件建模的基本概念 — HBT 中文译本</title>
+<style>
+/* ===== HBT 中文译本 · 统一标准样式 ===== */
+  :root {
+    --ink: #1a1a1a; --muted: #5a6470; --accent: #2a4d8f; --rule: #d8dce2;
+    --bg: #ffffff; --soft: #f7f8fa;
+    --serif: "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", "STSong", "SimSun", Georgia, "Times New Roman", serif;
+    --sans: "Source Han Sans SC", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", "Heiti SC", Helvetica, Arial, sans-serif;
+    --mono: "Cambria Math", "STIX Two Math", "Latin Modern Math", "Times New Roman", serif;
+  }
+  html, body { background: var(--bg); color: var(--ink); }
+  body { font-family: var(--serif); max-width: 880px; margin: 0 auto;
+         padding: 46px 26px 64px; line-height: 1.78; }
+  header { border-bottom: 1px solid var(--rule); padding-bottom: 18px; margin-bottom: 30px; }
+  .kicker { font-family: var(--sans); font-size: 0.78em; letter-spacing: 0.14em;
+            text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: var(--serif); font-size: 1.7em; line-height: 1.4;
+       margin: 12px 0 6px; font-weight: 600; }
+  .ch-num { font-family: var(--sans); color: var(--accent); font-size: 0.85em;
+            letter-spacing: 0.08em; }
+  .credit { font-family: var(--sans); font-size: 0.78em; color: var(--muted);
+            margin-top: 18px; line-height: 1.55; }
+  h2 { font-family: var(--serif); font-size: 1.32em; margin: 36px 0 14px;
+       border-bottom: 1px solid var(--rule); padding-bottom: 6px; font-weight: 600; }
+  h3 { font-family: var(--serif); font-size: 1.12em; margin: 26px 0 10px; font-weight: 600; }
+  h4 { font-family: var(--serif); font-size: 1.0em; margin: 22px 0 8px;
+       font-weight: 600; color: #222; }
+  p { margin: 0 0 12px; text-align: justify; }
+  ul { margin: 6px 0 14px; padding-left: 22px; }
+  ol { margin: 6px 0 14px; padding-left: 24px; }
+  li { margin: 2px 0; }
+  .figure { margin: 22px auto; text-align: center; }
+  .figure img { max-width: 100%; height: auto; border: 1px solid var(--rule);
+                border-radius: 2px; background: #fff; }
+  .figure .cap { font-family: var(--sans); font-size: 0.86em; color: var(--muted);
+                 margin-top: 8px; line-height: 1.5; }
+  .eq { position: relative; display: flex; align-items: center;
+        justify-content: center; margin: 10px 0; }
+  /* 公式编号：绝对定位贴正文右边界，垂直居中 */
+  .eq .eqno { position: absolute; right: 0; top: 50%;
+              transform: translateY(-50%); z-index: 2;
+              padding-left: .5em; background: var(--bg);
+              font-family: var(--sans);
+              font-size: 0.88em; color: var(--muted); white-space: nowrap; }
+  /* 公式本体留出编号通道，避免宽公式与右对齐编号重叠 */
+  .eq .math-display { display: block; flex: 0 1 auto; width: max-content; min-width: 0;
+                       max-width: calc(100% - 7.5em); overflow-x: hidden; overflow-y: hidden;
+                       padding: 2px 0; box-sizing: border-box; }
+  .eq .eqtag { font-family: var(--sans); font-size: 0.88em;
+               color: var(--muted); margin-left: 10px; white-space: nowrap; }
+  .eqdef { display: flex; align-items: center; gap: 18px; margin: 6px 0 12px; }
+  .eqdef .math-display { flex: 0 1 auto; width: max-content; max-width: 46%;
+                         overflow-x: hidden; overflow-y: hidden; padding: 2px 0;
+                         box-sizing: border-box; }
+  .math-display.math-overflow { overflow-x: auto; }
+  .eqdef .meaning { flex: 1; font-size: 0.95em; line-height: 1.4; color: #222; }
+  .src { font-family: var(--sans); font-size: 0.76em; color: var(--muted);
+         margin-top: 4px; }
+  ol.refs { font-family: var(--sans); font-size: 0.85em; line-height: 1.6;
+            color: #333; padding-left: 26px; }
+  ol.refs li { margin: 4px 0; }
+  @media (max-width: 700px) {
+    body { padding: 24px 16px 40px; }
+    .eq .eqno { position: static; transform: none; margin-left: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="kicker">HBT for Circuit Design · 中文翻译节选</div>
+  <h1><span class="ch-num">第 2 章</span><br>微波器件建模的基本概念</h1>
+  <p class="credit">
+    译自 <i>Heterojunction Bipolar Transistors for Circuit Design: Microwave Modeling
+    and Parameter Extraction</i>, First Edition. Jianjun Gao.<br>
+    © 2015 Higher Education Press. All rights reserved. Published 2015 by John Wiley &amp; Sons Singapore Pte Ltd.<br>
+    本译文仅用于学术研究目的，版权归原作者及出版方所有。
+  </p>
+</header>
+
+<p>几乎每一个微波与射频（RF）有源和无源器件都可以视为一个二端口网络。二端口等效电路模型在电路设计中广泛用于描述有源和无源器件的电学行为。半导体器件建模的基本思想是：把复杂的有源器件表示为一个由基本电路元件——如电阻、电感、电容以及受控源——构成的二端口电路（参见图 2.1）。借助等效电路模型，电路设计者可以直观地理解复杂有源器件的工作机理。微波信号与噪声矩阵分析技术既是表示微波网络的基础，也是射频与微波半导体建模和参数提取的重要工具。本章将围绕二端口特性展开，重点讨论如何用一组能够写成矩阵形式的参数来描述器件。本章将：</p>
+<ul>
+  <li>介绍重要的线性参数（包括信号参数与噪声参数）；</li>
+  <li>讨论二端口网络的互联；</li>
+  <li>推导基本电路元件的信号与噪声网络参数；</li>
+  <li>分析寄生元件的去嵌入技术；</li>
+  <li>介绍基本电路元件的参数提取方法。</li>
+</ul>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.1.png" alt="半导体器件建模概念：（a）物理结构与（b）基本电路元件">
+  <div class="cap"><b>图 2.1</b> 半导体器件建模概念：（a）物理结构；（b）基本电路元件</div>
+</div>
+
+<h2 id="s2-1">2.1 信号参数</h2>
+
+<p>最常用的二端口网络参数有阻抗 Z、导纳 Y、混合 H、传输 ABCD 和散射 S 参数。其中阻抗 Z、导纳 Y、混合 H 和传输 ABCD 通常被称为低频信号参数，基于各端口的电压和电流。由于在较高频段开路与短路都难以实现（寄生电容的影响），这些参数过去只能在低频段测量。散射 S 参数通常被称为高频信号参数，基于加在网络上的行波。每一组参数都能完整地表征线性网络，并且都具有通用的矩阵形式。基于 Z、Y、H、ABCD 参数的二端口网络示意如图 2.2a 所示，可以看到网络共有四个端口变量：V₁、V₂、I₁、I₂，其中可任取两个作为激励变量，其余两个作为响应变量。图 2.2b 给出了带有端口入射波与反射波的网络示意图。</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.2.png" alt="二端口网络框图：（a）低频；（b）高频">
+  <div class="cap"><b>图 2.2</b> 二端口网络框图：（a）低频参数；（b）高频参数</div>
+</div>
+
+<p>图中 aᵢ（i = 1, 2）是入射归一化功率波，bᵢ（i = 1, 2）是反射归一化功率波。因此 a₁ 是输入端口的入射波，b₁ 是输入端口的反射波；类似地，a₂ 和 b₂ 分别是输出端口的入射波和反射波。可见二端口网络共有四个端口变量：a₁、a₂、b₁、b₂。一般取两个入射波作为激励变量，另外两个作为响应变量。入射与反射归一化功率波可表示如下：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle a_1 = \frac{V_1 + Z_0 I_1}{2\sqrt{Z_0}}\]</span><span class="eqno">(2.1)</span></div>
+<div class="eq"><span class="math-display">\[\displaystyle b_1 = \frac{V_1 - Z_0 I_1}{2\sqrt{Z_0}}\]</span><span class="eqno">(2.2)</span></div>
+<div class="eq"><span class="math-display">\[\displaystyle a_2 = \frac{V_2 + Z_0 I_2}{2\sqrt{Z_0}}\]</span><span class="eqno">(2.3)</span></div>
+<div class="eq"><span class="math-display">\[\displaystyle b_2 = \frac{V_2 - Z_0 I_2}{2\sqrt{Z_0}}\]</span><span class="eqno">(2.4)</span></div>
+
+<p>类似地，可以反求各端口的电压与电流：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle V_1 = \sqrt{Z_0}\left(a_1+b_1\right)\]</span><span class="eqno">(2.5)</span></div>
+<div class="eq"><span class="math-display">\[\displaystyle I_1 = \frac{a_1-b_1}{\sqrt{Z_0}}\]</span><span class="eqno">(2.6)</span></div>
+<div class="eq"><span class="math-display">\[\displaystyle V_2 = \sqrt{Z_0}\left(a_2+b_2\right)\]</span><span class="eqno">(2.7)</span></div>
+<div class="eq"><span class="math-display">\[\displaystyle I_2 = \frac{a_2-b_2}{\sqrt{Z_0}}\]</span><span class="eqno">(2.8)</span></div>
+
+<p>其中 Zₒ 是网络输入端与输出端连接传输线的特性阻抗。</p>
+
+<h3>2.1.1 低频参数</h3>
+
+<h4>2.1.1.1 阻抗参数</h4>
+
+<p>开路阻抗参数（即 Z 参数）用于表征二端口网络，其激励量为输入端口电压 V₁ 和输出端口电压 V₂；此时 I₁ 和 I₂ 是自变量，V₁ 和 V₂ 是因变量。网络的运算可用下面的矩阵表示：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle \begin{bmatrix}V_1\\V_2\end{bmatrix} = \begin{bmatrix}Z_{11}&amp;Z_{12}\\Z_{21}&amp;Z_{22}\end{bmatrix}\begin{bmatrix}I_1\\I_2\end{bmatrix}\]</span><span class="eqno">(2.9)</span></div>
+
+<p>Z 参数的定义式与物理含义归纳如下：</p>
+
+<div class="eqdef"><span class="math-display">\[\displaystyle Z_{11}=\left.\frac{V_1}{I_1}\right|_{I_2=0}\]</span><span class="meaning">输入阻抗（输出端口开路）</span></div>
+<div class="eqdef"><span class="math-display">\[\displaystyle Z_{12}=\left.\frac{V_1}{I_2}\right|_{I_1=0}\]</span><span class="meaning">反向传输阻抗（输入端口开路）</span></div>
+<div class="eqdef"><span class="math-display">\[\displaystyle Z_{21}=\left.\frac{V_2}{I_1}\right|_{I_2=0}\]</span><span class="meaning">正向传输阻抗（输出端口开路）</span></div>
+<div class="eqdef"><span class="math-display">\[\displaystyle Z_{22}=\left.\frac{V_2}{I_2}\right|_{I_1=0}\]</span><span class="meaning">输出阻抗（输入端口开路）</span></div>
+
+<p>归一化 Z 参数可表示为：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle [z]=\frac{[Z]}{Z_0}\]</span><span class="eqno">(2.10)</span></div>
+
+<p>当第二端口接任意负载阻抗 Z<sub>L</sub> 时，输入阻抗 Z<sub>in</sub> 为：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle Z_{\mathrm{in}}=\frac{V_1}{I_1}=Z_{11}-\frac{Z_{12}Z_{21}}{Z_{22}+Z_L}\]</span><span class="eqno">(2.11)</span></div>
+
+<p>类似地，当第一端口接任意源阻抗 Z<sub>S</sub> 时，输出阻抗 Z<sub>out</sub> 为：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle Z_{\mathrm{out}}=\frac{V_2}{I_2}=Z_{22}-\frac{Z_{12}Z_{21}}{Z_{11}+Z_S}\]</span><span class="eqno">(2.12)</span></div>
+
+<h4>2.1.1.2 导纳参数</h4>
+
+<p>现在来看短路 Y 参数——电压作为自变量，因此被称为短路导纳参数，用以描述另一端口短路时网络的输入、输出、正向与反向导纳。短路导纳参数（即 Y 参数）以输入端口电流 I₁ 与输出端口电流 I₂ 为激励量；此时 V₁ 和 V₂ 是自变量，网络的运算可用如下两式描述：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle I_1=Y_{11}V_1+Y_{12}V_2\]</span><span class="eqno">(2.13)</span></div>
+<div class="eq"><span class="math-display">\[\displaystyle I_2=Y_{21}V_1+Y_{22}V_2\]</span><span class="eqno">(2.14)</span></div>
+
+<p>Y 参数的定义式与物理含义归纳如下：</p>
+
+<div class="eqdef"><span class="math-display">\[\displaystyle Y_{11}=\left.\frac{I_1}{V_1}\right|_{V_2=0}\]</span><span class="meaning">输入导纳（输出端口短路）</span></div>
+<div class="eqdef"><span class="math-display">\[\displaystyle Y_{12}=\left.\frac{I_1}{V_2}\right|_{V_1=0}\]</span><span class="meaning">反向传输导纳（输入端口短路）</span></div>
+<div class="eqdef"><span class="math-display">\[\displaystyle Y_{21}=\left.\frac{I_2}{V_1}\right|_{V_2=0}\]</span><span class="meaning">正向传输导纳（输出端口短路）</span></div>
+<div class="eqdef"><span class="math-display">\[\displaystyle Y_{22}=\left.\frac{I_2}{V_2}\right|_{V_1=0}\]</span><span class="meaning">输出导纳（输入端口短路）</span></div>
+
+<p>归一化 Y 参数可表示为：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle [y]=Z_0[Y]\]</span><span class="eqno">(2.15)</span></div>
+
+<p>其中 Yₒ = 1 / Zₒ 是特性导纳。</p>
+
+<p>当第二端口接任意负载导纳 Y<sub>L</sub> 时，输入导纳 Y<sub>in</sub> 为：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle Y_{\mathrm{in}}=\frac{I_1}{V_1}=Y_{11}-\frac{Y_{12}Y_{21}}{Y_{22}+Y_L}\]</span><span class="eqno">(2.16)</span></div>
+
+<p>类似地，当第一端口接任意源导纳 Y<sub>S</sub> 时，输出导纳 Y<sub>out</sub> 为：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle Y_{\mathrm{out}}=\frac{I_2}{V_2}=Y_{22}-\frac{Y_{12}Y_{21}}{Y_{11}+Y_S}\]</span><span class="eqno">(2.17)</span></div>
+
+<h4>2.1.1.3 混合参数</h4>
+
+<p>混合参数用于表征二端口网络，其激励量为输入端口电流 I₁ 和输出端口电压 V₂；此时 I₁ 和 V₂ 是自变量，V₁ 和 I₂ 是因变量。网络的运算可用如下两式描述：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle V_1=H_{11}I_1+H_{12}V_2\]</span><span class="eqno">(2.18)</span></div>
+<div class="eq"><span class="math-display">\[\displaystyle I_2=H_{21}I_1+H_{22}V_2\]</span><span class="eqno">(2.19)</span></div>
+
+<p>H 参数的定义式与物理含义归纳如下：</p>
+
+<div class="eqdef"><span class="math-display">\[\displaystyle H_{11}=\left.\frac{V_1}{I_1}\right|_{V_2=0}\]</span><span class="meaning">输入阻抗（输出端口短路）</span></div>
+<div class="eqdef"><span class="math-display">\[\displaystyle H_{12}=\left.\frac{V_1}{V_2}\right|_{I_1=0}\]</span><span class="meaning">反向电压增益（输入端口开路）</span></div>
+<div class="eqdef"><span class="math-display">\[\displaystyle H_{21}=\left.\frac{I_2}{I_1}\right|_{V_2=0}\]</span><span class="meaning">正向电流增益（输出端口短路）</span></div>
+<div class="eqdef"><span class="math-display">\[\displaystyle H_{22}=\left.\frac{I_2}{V_2}\right|_{I_1=0}\]</span><span class="meaning">输出导纳（输入端口开路）</span></div>
+
+<p>值得注意的是，输出端口短路条件下的正向电流增益 H₂₁ 是半导体器件（如 BJT 与 FET）的一项重要参数。可以直接从 |H₂₁| 随频率变化的曲线得到典型优值——截止频率 f<sub>T</sub>，其定义为 |H₂₁| 下降到 1 时所对应的频率（参见图 2.3）。因此 f<sub>T</sub> 又称单位增益带宽，用于描述晶体管能够正常工作的速度。</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.3.png" alt="晶体管 |H21| 随频率变化曲线">
+  <div class="cap"><b>图 2.3</b> 晶体管 |H₂₁| 随频率变化曲线</div>
+</div>
+
+<p>归一化 H 参数可表示为：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle [h]=\begin{bmatrix}H_{11}/Z_0&amp;H_{12}\\H_{21}&amp;H_{22}Z_0\end{bmatrix}\]</span><span class="eqno">(2.20)</span></div>
+
+<h4>2.1.1.4 传输参数</h4>
+
+<p>传输参数以输入端口的电压与电流作为激励量来表征二端口网络；此时 V₁ 和 I₁ 是自变量，V₂ 和 I₂ 是因变量。网络的运算可用下面的矩阵表示：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle \begin{bmatrix}V_1\\I_1\end{bmatrix}=\begin{bmatrix}A&amp;B\\C&amp;D\end{bmatrix}\begin{bmatrix}V_2\\-I_2\end{bmatrix}\]</span><span class="eqno">(2.21)</span></div>
+
+<p>或</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle \begin{bmatrix}V_1\\I_1\end{bmatrix}=\begin{bmatrix}A&amp;B\\C&amp;D\end{bmatrix}\begin{bmatrix}V_2\\-I_2\end{bmatrix}\]</span><span class="eqno">(2.22)</span></div>
+
+<p>其中 [ABCD] 称为二端口网络的链式矩阵，又称 ABCD 参数。链式矩阵非常便于级联连接的运算：注意，输入电压与输出电压相对应，输入电流则与输出电流的<em>负值</em>相对应。这意味着对于级联连接，只要把各级矩阵直接相乘即可——上一级的输出参数恰是下一级的输入参数。ABCD 参数的定义式与物理含义归纳如下：</p>
+
+<div class="eqdef"><span class="math-display">\[\displaystyle A=\left.\frac{V_1}{V_2}\right|_{I_2=0}\]</span><span class="meaning">反向电压增益（输出端口开路）</span></div>
+<div class="eqdef"><span class="math-display">\[\displaystyle B=\left.\frac{V_1}{-I_2}\right|_{V_2=0}\]</span><span class="meaning">负反向传输阻抗（输入端口短路）</span></div>
+<div class="eqdef"><span class="math-display">\[\displaystyle C=\left.\frac{I_1}{V_2}\right|_{I_2=0}\]</span><span class="meaning">反向传输导纳（输出端口开路）</span></div>
+<div class="eqdef"><span class="math-display">\[\displaystyle D=\left.\frac{I_1}{-I_2}\right|_{V_2=0}\]</span><span class="meaning">负反向电流增益（输入端口短路）</span></div>
+
+<p>当第二端口接任意负载阻抗 Z<sub>L</sub> 时，输入阻抗 Z<sub>in</sub> 为：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle Z_{\mathrm{in}}=\frac{V_1}{I_1}=\frac{B+AZ_L}{D+CZ_L}\]</span><span class="eqno">(2.23)</span></div>
+
+<p>当第一端口接任意源阻抗 Z<sub>S</sub> 时，输出阻抗 Z<sub>out</sub> 为：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle Z_{\mathrm{out}}=\frac{V_2}{I_2}=\frac{B+DZ_S}{A+CZ_S}\]</span><span class="eqno">(2.24)</span></div>
+
+<p>归一化 ABCD 参数可表示为：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle [a]=\begin{bmatrix}A&amp;B/Z_0\\C Z_0&amp;D\end{bmatrix}\]</span><span class="eqno">(2.25)</span></div>
+
+<h4>2.1.1.5 阻抗、导纳、链式与混合参数的转换</h4>
+
+<p>利用各参数的定义式，可以将一组网络参数转换为另一组。为便于查阅，表 2.1 汇总了上述四种参数集之间的转换公式。</p>
+
+<div class="figure">
+  <img src="ch2_figs/Table_2.1.png" alt="不同网络表示之间的转换表">
+  <div class="cap"><b>表 2.1</b> 不同网络表示之间的转换</div>
+</div>
+
+<h3>2.1.2 S 参数</h3>
+
+<p>Z、Y、H 和 ABCD 参数在较高频率下难以准确测量，因为所需的短路与开路测试在高频段难以实现。散射（S）参数是当前在数十 MHz 以上频段最容易测量的参数——它们是用 50 Ω 或 75 Ω 网络分析仪测得的。网络分析仪是大多数 RF 与微波电路设计所必需的基础基本工具，现代仪器可以通过一组基础校准实现快速、高精度的测量。S 参数在高频段用于表征 RF/微波二端口网络，基于参数基于行波概念，能够完整地刻画被分析或被测二端口网络在高频下的特性。S 参数以输入端口与输出端口的入射波作为激励量；此时 a₁ 和 a₂ 是自变量，b₁ 和 b₂ 是因变量。网络的运算可用下面的矩阵表示：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle \begin{bmatrix}b_1\\b_2\end{bmatrix}=\begin{bmatrix}S_{11}&amp;S_{12}\\S_{21}&amp;S_{22}\end{bmatrix}\begin{bmatrix}a_1\\a_2\end{bmatrix}\]</span><span class="eqno">(2.26)</span></div>
+
+<p>S 参数的定义式与物理含义归纳如下：</p>
+
+<div class="eqdef"><span class="math-display">\[\displaystyle S_{11}=\left.\frac{b_1}{a_1}\right|_{a_2=0}\]</span><span class="meaning">输入反射系数（输出端口接匹配负载）</span></div>
+<div class="eqdef"><span class="math-display">\[\displaystyle S_{21}=\left.\frac{b_2}{a_1}\right|_{a_2=0}\]</span><span class="meaning">正向传输系数（输出端口接匹配负载）</span></div>
+<div class="eqdef"><span class="math-display">\[\displaystyle S_{12}=\left.\frac{b_1}{a_2}\right|_{a_1=0}\]</span><span class="meaning">反向传输系数（输入端口接匹配负载）</span></div>
+<div class="eqdef"><span class="math-display">\[\displaystyle S_{22}=\left.\frac{b_2}{a_2}\right|_{a_1=0}\]</span><span class="meaning">输出反射系数（输入端口接匹配负载）</span></div>
+
+<p>下面讨论 S 参数与输入、输出端口电压之间的关系。图 2.4 给出了用于计算 S₁₁、S₂₁ 的框图。当输出端口接匹配负载（Z<sub>L</sub> = Zₒ，V<sub>S</sub>′ = 0）时，输入反射系数可表示为 [1]：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle S_{11}=\frac{2V_1}{V_S}-1\]</span><span class="eqno">(2.27)</span></div>
+<div class="eq"><span class="math-display">\[\displaystyle S_{21}=\frac{2V_2}{V_S}\]</span><span class="eqno">(2.28)</span></div>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.4.png" alt="S 参数计算框图">
+  <div class="cap"><b>图 2.4</b> S 参数计算框图</div>
+</div>
+
+<p>当输入端口接匹配负载（Z<sub>S</sub> = Zₒ，V<sub>S</sub> = 0）时，输出反射系数可表示为：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle S_{22}=\frac{2V_2}{V_S}-1\]</span><span class="eqno">(2.29)</span></div>
+<div class="eq"><span class="math-display">\[\displaystyle S_{12}=\frac{2V_1}{V_S}\]</span><span class="eqno">(2.30)</span></div>
+
+<p>由式 (2.27)–(2.31) 可见，S 参数可以直接由输入、输出节点电压与源电压求出。</p>
+
+<p>表 2.2 汇总了 S 参数与 Z、Y、H、ABCD 参数之间的转换。</p>
+
+<div class="figure">
+  <img src="ch2_figs/Table_2.2.png" alt="S 参数与 Z/Y/H/ABCD 参数之间的转换表">
+  <div class="cap"><b>表 2.2</b> S 参数与 Z、Y、H、ABCD 参数之间的转换</div>
+</div>
+
+<p>值得一提的是，目前大多数射频仪器与同轴电缆采用 50 Ω 的标准阻抗。实际上，50 Ω 参考阻抗是在空气介质同轴线的最低损耗与最大功率容量之间折中选取的结果 [2, 3]。考虑以空气为介质的同轴电缆（参见图 2.5），其特性阻抗可表示为：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle Z_0=\sqrt{\frac{\mu}{\varepsilon}}\frac{\ln(b/a)}{2\pi}\approx\frac{60}{\sqrt{\varepsilon_r}}\ln\frac{b}{a}\]</span><span class="eqno">(2.31)</span></div>
+
+<p>其中 a、b 分别为内、外导体半径；μ 和 ε 分别为磁导率与介电常数；ε<sub>r</sub> 为相对介电常数（空气介质下 ε<sub>r</sub> = 1）。</p>
+
+<p>当外、内导体半径之比满足下式时，可获得最大功率容量：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle \frac{b}{a}=\sqrt{e}=1.649\]</span><span class="eqno">(2.32)</span></div>
+
+<p class="src">（原书印刷为 e = 1.649，意为 b/a = √e = 1.649；ln(b/a) = 0.5。）</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.5.png" alt="空气介质同轴电缆的结构">
+  <div class="cap"><b>图 2.5</b> 空气介质同轴电缆的结构</div>
+</div>
+
+<p>将式 (2.32) 代入式 (2.31)，可得</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle Z_0^{p}\approx60\ln\frac{b}{a}=30\,\Omega\]</span><span class="eqno">(2.33)</span></div>
+
+<p>在以空气为介质的同轴结构中，使衰减最小所对应的最佳外、内导体半径之比为</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle \ln\frac{b}{a}=1+\frac{a}{b}\]</span><span class="eqno">(2.34)</span></div>
+
+<p>经迭代可解得 b/a 约为 3.6。</p>
+
+<p>将式 (2.34) 代入式 (2.35)（原文如此；实为代入式 (2.31)），可得</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle Z_0^{a}\approx60\ln\frac{b}{a}=77\,\Omega\]</span><span class="eqno">(2.35)</span></div>
+
+<p>因此，射频系统的标准阻抗可由 77 Ω 与 30 Ω 的几何平均近似得到：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle Z_0=\sqrt{Z_0^{p}Z_0^{a}}\approx50\,\Omega\]</span><span class="eqno">(2.36)</span></div>
+
+<p>由此可见，50 Ω 标准是同轴电缆最佳衰减性能与最大峰值功率容量之间的折中。</p>
+
+<h2 id="s2-2">2.2 噪声二端口网络的表示</h2>
+
+<p>线性噪声网络的电路理论表明：任意含噪二端口都可以用一个噪声等效电路来代替，该等效电路由原二端口（此时假定为无噪）和两个额外的相关噪声源组成。本节将讨论三种最常用的噪声等效电路形式及其对应的相关矩阵——阻抗、导纳与链式噪声表示。</p>
+
+<h3>2.2.1 噪声矩阵</h3>
+
+<h4>2.2.1.1 阻抗噪声矩阵</h4>
+
+<p>噪声二端口网络的阻抗噪声表示可由以下两个方程描述 [4, 5]：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle V_1=Z_{11}I_1+Z_{12}I_2+V_{N1}\]</span><span class="eqno">(2.37)</span></div>
+<div class="eq"><span class="math-display">\[\displaystyle V_2=Z_{21}I_1+Z_{22}I_2+V_{N2}\]</span><span class="eqno">(2.38)</span></div>
+
+<p>阻抗噪声表示按热噪声可用功率 kTΔf 归一化为：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle \mathbf{C}_Z\]</span><span class="eqno">(2.39)</span></div>
+
+<p>其中 k 是玻尔兹曼常数，T 是绝对温度，Δf 是带宽，∗ 表示复共轭。噪声二端口网络阻抗噪声表示的等效电路模型如图 2.6 所示。</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.6.png" alt="噪声二端口网络的阻抗噪声表示">
+  <div class="cap"><b>图 2.6</b> 噪声二端口网络的阻抗噪声表示</div>
+</div>
+
+<h4>2.2.1.2 导纳噪声矩阵</h4>
+
+<p>噪声二端口网络的导纳噪声表示可由以下两个方程描述 [4, 5]：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle I_1=Y_{11}V_1+Y_{12}V_2+I_{N1}\]</span><span class="eqno">(2.40)</span></div>
+<div class="eq"><span class="math-display">\[\displaystyle I_2=Y_{21}V_1+Y_{22}V_2+I_{N2}\]</span><span class="eqno">(2.41)</span></div>
+
+<p>相应的等效电路模型如图 2.7 所示。导纳噪声表示按热噪声可用功率 kTΔf 归一化为：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle \mathbf{C}_Y\]</span><span class="eqno">(2.42)</span></div>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.7.png" alt="噪声二端口网络的导纳噪声表示">
+  <div class="cap"><b>图 2.7</b> 噪声二端口网络的导纳噪声表示</div>
+</div>
+
+<h4>2.2.1.3 链式噪声相关矩阵</h4>
+
+<p>链式噪声表示的等效电路模型如图 2.8 所示。噪声二端口网络的链式噪声表示可由以下两个方程描述 [4, 5]：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle V_1=AV_2-BI_2+V_N\]</span><span class="eqno">(2.43)</span></div>
+<div class="eq"><span class="math-display">\[\displaystyle I_1=CV_2-DI_2+I_N\]</span><span class="eqno">(2.44)</span></div>
+
+<p>链式噪声表示按热噪声可用功率 kTΔf 归一化为：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle \mathbf{C}_A\]</span><span class="eqno">(2.45)</span></div>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.8.png" alt="噪声二端口网络的链式噪声表示">
+  <div class="cap"><b>图 2.8</b> 噪声二端口网络的链式噪声表示</div>
+</div>
+
+<h4>2.2.1.4 相关噪声矩阵之间的关系</h4>
+
+<p>一种相关噪声矩阵可通过其定义式转换为另一种。表 2.3 给出了阻抗、导纳与链式之间所有可能的转换矩阵集合 [6, 7]，其中 C 与 C′ 分别为转换前与转换后的相关矩阵，T 为转换矩阵。转换前后相关矩阵之间的关系为：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle C^{\prime}=TCT^{+}\]</span><span class="eqno">(2.46)</span></div>
+
+<p>在噪声分析中，两个二端口网络并联、串联或级联互联时，结果相关矩阵与原二端口相关矩阵之间的关系为 [6]：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle C_Z=C_{Z1}+C_{Z2}\quad\text{(series)}\]</span><span class="eqtag">（串联）</span><span class="eqno">(2.47)</span></div>
+<div class="eq"><span class="math-display">\[\displaystyle C_Y=C_{Y^\prime}+C_{Y^{\prime\prime}}\quad\text{(parallel)}\]</span><span class="eqtag">（并联）</span><span class="eqno">(2.48)</span></div>
+<div class="eq"><span class="math-display">\[\displaystyle C_A=C_{A1}+A_1C_{A2}A_1^{+}\quad\text{(cascade)}\]</span><span class="eqtag">（级联）</span><span class="eqno">(2.49)</span></div>
+
+<p>其中下标 1 与 2 表示待连接的两个二端口。由以上各式可见：并联对应导纳表示下相关矩阵的相加，串联对应阻抗表示下相关矩阵的相加；级联的情形更为复杂，结果还含有第一个二端口的电学矩阵 A₁。</p>
+
+<p>对于仅由无源元件组成的二端口网络，其阻抗与导纳表示下的相关矩阵可表示为：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle \mathbf{C}_Z=4kT\,\mathrm{Re}\{Z\}\]</span><span class="eqno">(2.50)</span></div>
+<div class="eq"><span class="math-display">\[\displaystyle \mathbf{C}_Y=4kT\,\mathrm{Re}\{Y\}\]</span><span class="eqno">(2.51)</span></div>
+
+<div class="figure">
+  <img src="ch2_figs/Table_2.3.png" alt="不同网络噪声表示 C_Y、C_Z、C_A 之间的转换">
+  <div class="cap"><b>表 2.3</b> 不同网络噪声表示 C<sub>Y</sub>、C<sub>Z</sub>、C<sub>A</sub> 之间的转换</div>
+</div>
+
+<h3>2.2.2 噪声参数</h3>
+
+<p>基于二端口网络的不同噪声表示，对应的噪声参数类型也不同。最常用的噪声参数类型有阻抗型、导纳型与反射系数型。通常，每种噪声参数类型包含四个噪声参数。</p>
+
+<h4>2.2.2.1 导纳型</h4>
+
+<p>当二端口网络由内导纳为 Y<sub>s</sub> 的信号源驱动时，噪声系数可写为</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle F=F_{\min}+\frac{R_n}{G_s}\left|Y_s-Y_{\mathrm{opt}}\right|^2\]</span><span class="eqno">(2.52)</span></div>
+
+<p>其中</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle Y_{\mathrm{opt}}=G_{\mathrm{opt}}+jB_{\mathrm{opt}}\]</span></div>
+
+<h4>2.2.2.2 阻抗型</h4>
+
+<p>当二端口网络由内阻抗为 Z<sub>s</sub> 的信号源驱动时，噪声系数可写为</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle F=F_{\min}+\frac{g_n}{R_s}\left|Z_s-Z_{\mathrm{opt}}\right|^2\]</span><span class="eqno">(2.53)</span></div>
+
+<p>其中</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle Z_{\mathrm{opt}}=R_{\mathrm{opt}}+jX_{\mathrm{opt}}\]</span></div>
+
+<h4>2.2.2.3 反射系数型</h4>
+
+<p>利用源反射系数的定义，式 (2.50) 与 (2.51)（原文如此；实为式 (2.52) 与 (2.53)）可改写为：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle F=F_{\min}+N\frac{\left|G_s-G_{\mathrm{opt}}\right|^2}{\left(1-\left|G_s\right|^2\right)\left(1-\left|G_{\mathrm{opt}}\right|^2\right)}\]</span><span class="eqno">(2.54)</span></div>
+<div class="eq"><span class="math-display">\[\displaystyle F=F_{\min}+\frac{4R_n}{Z_0}\frac{\left|G_s-G_{\mathrm{opt}}\right|^2}{\left(1-\left|G_s\right|^2\right)\left|1+G_{\mathrm{opt}}\right|^2}\]</span><span class="eqno">(2.55)</span></div>
+
+<p>其中 Y<sub>s</sub> 为源导纳，Z<sub>s</sub> 为源阻抗，Γ<sub>s</sub> 为源反射系数：</p>
+
+<div class="eq"><span class="math-display">\[\displaystyle Y_s=G_s+jB_s\]</span></div>
+<div class="eq"><span class="math-display">\[\displaystyle Z_s=R_s+jX_s\]</span></div>
+
+<p>表 2.4 汇总了二端口网络阻抗型、导纳型与反射系数型的噪声参数。</p>
+
+<div class="figure">
+  <img src="ch2_figs/Table_2.4.png" alt="二端口网络的噪声参数">
+  <div class="cap"><b>表 2.4</b> 二端口网络的噪声参数</div>
+</div>
+
+<h2 id="s2-3">2.3 基本电路元件</h2>
+
+<p>组成有源半导体器件等效电路的元件称为<em>基本电路元件</em>。"基本"意味着这些电路元件已无法再分解为其它元件。因此基本电路构成了用以描述实际元器件行为的电路模型的最小构件，但它们自身不能用任何其它类型的元件来表示。基本电路元件共有四种：电阻、电感、电容以及受控源。本节将介绍这些基本电路元件的信号矩阵与噪声矩阵。</p>
+
+<h3>2.3.1 电阻</h3>
+
+<p>在半导体建模过程中，电阻通常用于表示有源器件的欧姆接触以及传输线的损耗。图 2.9 给出了单电阻 R 的串联与并联网络。</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.9.png" alt="单电阻的串联与并联网络">
+  <div class="cap"><b>图 2.9</b> 单电阻的（a）串联与（b）并联网络</div>
+</div>
+
+<p>对于单电阻 R 的串联网络，其信号参数可表示为：</p>
+
+<div class="eq"><span class="math-display">\[[Y]_S = \frac{1}{R}\begin{bmatrix} 1 &amp; -1 \\ -1 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.56)</span></div>
+<div class="eq"><span class="math-display">\[[A]_S = \begin{bmatrix} 1 &amp; R \\ 0 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.57)</span></div>
+<div class="eq"><span class="math-display">\[[S]_S = \frac{1}{R + 2Z_o}\begin{bmatrix} R &amp; 2Z_o \\ 2Z_o &amp; R \end{bmatrix}\]</span><span class="eqno">(2.58)</span></div>
+
+<p>其导纳表示下的相关噪声矩阵为：</p>
+
+<div class="eq"><span class="math-display">\[C_Y^S = 4kT\,\mathrm{Re}\,[Y]_S = \frac{4kT}{R}\begin{bmatrix} 1 &amp; -1 \\ -1 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.59)</span></div>
+
+<p>对于单电阻 R 的并联网络，其信号参数可表示为：</p>
+
+<div class="eq"><span class="math-display">\[[Z]_P = R\begin{bmatrix} 1 &amp; 1 \\ 1 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.60)</span></div>
+<div class="eq"><span class="math-display">\[[A]_P = \begin{bmatrix} 1 &amp; 0 \\ \dfrac{1}{R} &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.61)</span></div>
+<div class="eq"><span class="math-display">\[[S]_P = \frac{1}{2R + Z_o}\begin{bmatrix} -Z_o &amp; 2R \\ 2R &amp; -Z_o \end{bmatrix}\]</span><span class="eqno">(2.62)</span></div>
+
+<p>其阻抗表示下的相关噪声矩阵为：</p>
+
+<div class="eq"><span class="math-display">\[C_Z^P = 4kT\,\mathrm{Re}\,[Z]_P = 4kTR\begin{bmatrix} 1 &amp; 1 \\ 1 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.63)</span></div>
+
+<h3>2.3.2 电容</h3>
+
+<p>电容定义为两电极间电场中存储能量的能力，或在两端存在电压差时结构存储电荷的能力。其大小取决于电极面积、电极间距以及极板间的介质材料。最常用的电容是用于半导体器件建模的 pn 结电容。在 pn 结的空间电荷区中，正负电荷彼此分离，因此 pn 结必然伴随一个电容。图 2.10 给出了单电容 C 的典型串联与并联网络。</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.10.png" alt="单电容的串联与并联网络">
+  <div class="cap"><b>图 2.10</b> 单电容的（a）串联与（b）并联网络</div>
+</div>
+
+<p>对于单电容 C 的串联网络，其信号参数可表示为：</p>
+
+<div class="eq"><span class="math-display">\[[Y]_S = j\omega C\begin{bmatrix} 1 &amp; -1 \\ -1 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.64)</span></div>
+<div class="eq"><span class="math-display">\[[A]_S = \begin{bmatrix} 1 &amp; -\dfrac{j}{\omega C} \\ 0 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.65)</span></div>
+<div class="eq"><span class="math-display">\[[S]_S = \frac{1}{2Z_o + \dfrac{-j}{\omega C}}\begin{bmatrix} \dfrac{-j}{\omega C} &amp; 2Z_o \\ 2Z_o &amp; \dfrac{-j}{\omega C} \end{bmatrix}\]</span><span class="eqno">(2.66)</span></div>
+
+<p>对于单电容 C 的并联网络，其信号参数可表示为：</p>
+
+<div class="eq"><span class="math-display">\[[Z]_P = \frac{1}{j\omega C}\begin{bmatrix} 1 &amp; 1 \\ 1 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.67)</span></div>
+<div class="eq"><span class="math-display">\[[A]_P = \begin{bmatrix} 1 &amp; 0 \\ j\omega C &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.68)</span></div>
+<div class="eq"><span class="math-display">\[[S]_P = \frac{1}{Z_o + \dfrac{2}{j\omega C}}\begin{bmatrix} -Z_o &amp; \dfrac{2}{j\omega C} \\ \dfrac{2}{j\omega C} &amp; -Z_o \end{bmatrix}\]</span><span class="eqno">(2.69)</span></div>
+
+<p>其阻抗与导纳表示下的相关噪声矩阵分别为：</p>
+
+<div class="eq"><span class="math-display">\[C_Y^S = 4kT\,\mathrm{Re}\,[Y]_S = \begin{bmatrix} 0 &amp; 0 \\ 0 &amp; 0 \end{bmatrix}\]</span><span class="eqno">(2.70)</span></div>
+<div class="eq"><span class="math-display">\[C_Z^P = 4kT\,\mathrm{Re}\,[Z]_P = \begin{bmatrix} 0 &amp; 0 \\ 0 &amp; 0 \end{bmatrix}\]</span><span class="eqno">(2.71)</span></div>
+
+<p>纯电容网络是无源无损二端口网络，因此其相关噪声矩阵为零。需要指出的是，电容网络对半导体器件的噪声贡献并不为零，器件的最佳源导纳会因并存的电容而改变。</p>
+
+<p>对于串联 RC 网络（如图 2.11a 所示），其信号参数可表示为：</p>
+
+<div class="eq"><span class="math-display">\[[Y]_S = \frac{j\omega C}{1 + j\omega RC}\begin{bmatrix} 1 &amp; -1 \\ -1 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.72)</span></div>
+<div class="eq"><span class="math-display">\[[A]_S = \begin{bmatrix} 1 &amp; R + \dfrac{1}{j\omega C} \\ 0 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.73)</span></div>
+<div class="eq"><span class="math-display">\[[S]_S = \frac{1}{R + \dfrac{1}{j\omega C} + 2Z_o}\begin{bmatrix} R + \dfrac{1}{j\omega C} &amp; 2Z_o \\ 2Z_o &amp; R + \dfrac{1}{j\omega C} \end{bmatrix}\]</span><span class="eqno">(2.74)</span></div>
+
+<p>其导纳表示下的相关噪声矩阵为：</p>
+
+<div class="eq"><span class="math-display">\[C_Y^S = 4kT\,\mathrm{Re}\,[Y]_S = \frac{4kT\,\omega^{2}RC^{2}}{1 + \omega^{2}R^{2}C^{2}}\begin{bmatrix} 1 &amp; -1 \\ -1 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.75)</span></div>
+
+<p>对于并联 RC 网络（如图 2.11b 所示），其信号参数可表示为：</p>
+
+<div class="eq"><span class="math-display">\[[Z]_P = \left(R + \frac{1}{j\omega C}\right)\begin{bmatrix} 1 &amp; 1 \\ 1 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.76)</span></div>
+<div class="eq"><span class="math-display">\[[A]_P = \begin{bmatrix} 1 &amp; 0 \\ \dfrac{j\omega C}{1 + j\omega RC} &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.77)</span></div>
+<div class="eq"><span class="math-display">\[[S]_P = \frac{1}{2\left(R + \dfrac{1}{j\omega C}\right) + Z_o}\begin{bmatrix} -Z_o &amp; 2\left(R + \dfrac{1}{j\omega C}\right) \\ 2\left(R + \dfrac{1}{j\omega C}\right) &amp; -Z_o \end{bmatrix}\]</span><span class="eqno">(2.78)</span></div>
+
+<p>其阻抗表示下的相关噪声矩阵为：</p>
+
+<div class="eq"><span class="math-display">\[C_Z^P = 4kT\,\mathrm{Re}\,[Z]_P = 4kTR\begin{bmatrix} 1 &amp; 1 \\ 1 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.79)</span></div>
+
+<p>注意：由于这两个二端口网络是有源损耗网络，所以串联与并联 RC 网络的相关噪声矩阵均不为零。</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.11.png" alt="串联与并联 RC 网络">
+  <div class="cap"><b>图 2.11</b> （a）串联与（b）并联 RC 网络</div>
+</div>
+
+<h3>2.3.3 电感</h3>
+
+<p>在电路中，磁场储能效应用电感 L 表示；只要电流持续流过，电感中就会存储磁能。在有源器件的等效电路模型中，电感通常用于表示连接焊盘与器件的传输线的分布效应。图 2.12 给出了单电感 L 的典型串联与并联网络。</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.12.png" alt="单电感的串联与并联网络">
+  <div class="cap"><b>图 2.12</b> 单电感的（a）串联与（b）并联网络</div>
+</div>
+
+<p>对于单电感 L 的串联网络，其信号参数可表示为：</p>
+
+<div class="eq"><span class="math-display">\[[Y]_S = \frac{1}{j\omega L}\begin{bmatrix} 1 &amp; -1 \\ -1 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.80)</span></div>
+<div class="eq"><span class="math-display">\[[A]_S = \begin{bmatrix} 1 &amp; j\omega L \\ 0 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.81)</span></div>
+<div class="eq"><span class="math-display">\[[S]_S = \frac{1}{j\omega L + 2Z_o}\begin{bmatrix} j\omega L &amp; 2Z_o \\ 2Z_o &amp; j\omega L \end{bmatrix}\]</span><span class="eqno">(2.82)</span></div>
+
+<p>对于单电感 L 的并联网络，其信号参数可表示为：</p>
+
+<div class="eq"><span class="math-display">\[[Z]_P = j\omega L\begin{bmatrix} 1 &amp; 1 \\ 1 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.83)</span></div>
+<div class="eq"><span class="math-display">\[[A]_P = \begin{bmatrix} 1 &amp; 0 \\ \dfrac{1}{j\omega L} &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.84)</span></div>
+<div class="eq"><span class="math-display">\[[S]_P = \frac{1}{Z_o + 2j\omega L}\begin{bmatrix} -Z_o &amp; 2j\omega L \\ 2j\omega L &amp; -Z_o \end{bmatrix}\]</span><span class="eqno">(2.85)</span></div>
+
+<p>其阻抗与导纳表示下的相关噪声矩阵分别为：</p>
+
+<div class="eq"><span class="math-display">\[C_Y^S = 4kT\,\mathrm{Re}\,[Y]_S = \begin{bmatrix} 0 &amp; 0 \\ 0 &amp; 0 \end{bmatrix}\]</span><span class="eqno">(2.86)</span></div>
+<div class="eq"><span class="math-display">\[C_Z^P = 4kT\,\mathrm{Re}\,[Z]_P = \begin{bmatrix} 0 &amp; 0 \\ 0 &amp; 0 \end{bmatrix}\]</span><span class="eqno">(2.87)</span></div>
+
+<p>纯电感网络是无源无损二端口网络，因此其相关噪声矩阵为零。值得注意的是，电感网络对半导体器件的噪声贡献并不为零，器件的最佳源导纳会因并存的电感而改变。</p>
+
+<p>对于串联 RL 网络（如图 2.13a 所示），其信号参数可表示为：</p>
+
+<div class="eq"><span class="math-display">\[[Y]_S = \frac{1}{R + j\omega L}\begin{bmatrix} 1 &amp; -1 \\ -1 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.88)</span></div>
+<div class="eq"><span class="math-display">\[[A]_S = \begin{bmatrix} 1 &amp; R + j\omega L \\ 0 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.89)</span></div>
+<div class="eq"><span class="math-display">\[[S]_S = \frac{1}{R + j\omega L + 2Z_o}\begin{bmatrix} R + j\omega L &amp; 2Z_o \\ 2Z_o &amp; R + j\omega L \end{bmatrix}\]</span><span class="eqno">(2.90)</span></div>
+
+<p>对于并联 RL 网络（如图 2.13b 所示），其信号参数可表示为：</p>
+
+<div class="eq"><span class="math-display">\[[Z]_P = (R + j\omega L)\begin{bmatrix} 1 &amp; 1 \\ 1 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.91)</span></div>
+<div class="eq"><span class="math-display">\[[A]_P = \begin{bmatrix} 1 &amp; 0 \\ \dfrac{1}{R + j\omega L} &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.92)</span></div>
+<div class="eq"><span class="math-display">\[[S]_P = \frac{1}{Z_o + 2(R + j\omega L)}\begin{bmatrix} -Z_o &amp; 2(R + j\omega L) \\ 2(R + j\omega L) &amp; -Z_o \end{bmatrix}\]</span><span class="eqno">(2.93)</span></div>
+
+<p>其阻抗与导纳表示下的相关噪声矩阵分别为：</p>
+
+<div class="eq"><span class="math-display">\[C_Y^S = 4kT\,\mathrm{Re}\,[Y]_S = \frac{4kTR}{R^{2} + (\omega L)^{2}}\begin{bmatrix} 1 &amp; -1 \\ -1 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.94)</span></div>
+<div class="eq"><span class="math-display">\[C_Z^P = 4kT\,\mathrm{Re}\,[Z]_P = 4kTR\begin{bmatrix} 1 &amp; 1 \\ 1 &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.95)</span></div>
+
+<p>注意：由于这两个二端口网络是有源损耗网络，所以串联与并联 RL 网络的相关噪声矩阵均不为零（图 2.13）。</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.13.png" alt="串联与并联 RL 网络">
+  <div class="cap"><b>图 2.13</b> （a）串联与（b）并联 RL 网络</div>
+</div>
+
+<h3>2.3.4 受控源</h3>
+
+<p>受控源用于建模能够产生电能量的器件，而前述无源元件则用于建模无法自身产生电能量的实际器件。受控源有时也称为<em>依赖源</em>。受控电流源和受控电压源都可由电路中某处的电压或电流控制，因此共有四种类型：压控电压源、压控电流源、流控电流源、流控电压源。</p>
+
+<h4>2.3.4.1 压控电流源</h4>
+
+<p>图 2.14 给出了压控电流源的电路模型；通常商业电路仿真软件中其输入与输出阻抗默认为无穷大。该模型为纯线性依赖源模型，其中 g<sub>m</sub> 为跨导，等于输出电流 I<sub>out</sub> 对输入电压 V<sub>in</sub> 的斜率：</p>
+
+<div class="eq"><span class="math-display">\[g_m = \frac{dI_{\mathrm{out}}}{dV_{\mathrm{in}}}\]</span><span class="eqno">(2.96)</span></div>
+
+<p>其信号矩阵为：</p>
+
+<div class="eq"><span class="math-display">\[[Y] = \begin{bmatrix} 0 &amp; 0 \\ g_m &amp; 0 \end{bmatrix}\]</span><span class="eqno">(2.97)</span></div>
+<div class="eq"><span class="math-display">\[[S] = \begin{bmatrix} 1 &amp; 0 \\ -2g_m Z_o &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.98)</span></div>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.14.png" alt="压控电流源的电路模型">
+  <div class="cap"><b>图 2.14</b> 压控电流源的电路模型</div>
+</div>
+
+<h4>2.3.4.2 压控电压源</h4>
+
+<p>图 2.15 给出了压控电压源的电路模型；通常商业电路仿真软件中其输入阻抗默认为无穷大、输出阻抗默认为零。E 为电压增益，等于输出电压 V<sub>out</sub> 对输入电压 V<sub>in</sub> 的导数：</p>
+
+<div class="eq"><span class="math-display">\[E = \frac{dV_{\mathrm{out}}}{dV_{\mathrm{in}}}\]</span><span class="eqno">(2.99)</span></div>
+
+<p>压控电压源的 S 参数为：</p>
+
+<div class="eq"><span class="math-display">\[[S] = \begin{bmatrix} 1 &amp; 0 \\ 2E &amp; -1 \end{bmatrix}\]</span><span class="eqno">(2.100)</span></div>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.15.png" alt="压控电压源的电路模型">
+  <div class="cap"><b>图 2.15</b> 压控电压源的电路模型</div>
+</div>
+
+<h4>2.3.4.3 流控电流源</h4>
+
+<p>图 2.16 给出了流控电流源的电路模型；通常商业电路仿真软件中其输入阻抗默认为零、输出阻抗默认为无穷大。β 为电流增益，等于输出电流 I<sub>out</sub> 对输入电流 I<sub>in</sub> 的导数：</p>
+
+<div class="eq"><span class="math-display">\[\beta = \frac{dI_{\mathrm{out}}}{dI_{\mathrm{in}}}\]</span><span class="eqno">(2.101)</span></div>
+
+<p>流控电流源的 S 参数可表示为：</p>
+
+<div class="eq"><span class="math-display">\[[S] = \begin{bmatrix} -1 &amp; 0 \\ -2\beta &amp; 1 \end{bmatrix}\]</span><span class="eqno">(2.102)</span></div>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.16.png" alt="流控电流源的电路模型">
+  <div class="cap"><b>图 2.16</b> 流控电流源的电路模型</div>
+</div>
+
+<h4>2.3.4.4 流控电压源</h4>
+
+<p>图 2.17 给出了流控电压源的电路模型；通常商业电路仿真软件中其输入与输出阻抗默认均为零。E 为跨阻增益，等于输出电压 V<sub>out</sub> 对输入电流 I<sub>in</sub> 的导数：</p>
+
+<div class="eq"><span class="math-display">\[E = \frac{dV_{\mathrm{out}}}{dI_{\mathrm{in}}}\]</span><span class="eqno">(2.103)</span></div>
+
+<p>其信号矩阵为：</p>
+
+<div class="eq"><span class="math-display">\[[Z] = \begin{bmatrix} 0 &amp; 0 \\ E &amp; 0 \end{bmatrix}\]</span><span class="eqno">(2.104)</span></div>
+<div class="eq"><span class="math-display">\[[S] = \begin{bmatrix} -1 &amp; 0 \\ \dfrac{2E}{Z_o} &amp; -1 \end{bmatrix}\]</span><span class="eqno">(2.105)</span></div>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.17.png" alt="流控电压源的电路模型">
+  <div class="cap"><b>图 2.17</b> 流控电压源的电路模型</div>
+</div>
+
+<h3>2.3.5 理想传输线</h3>
+
+<p>射频与微波设计借鉴了用于低频段的模拟设计技术与用于高频段的高频设计技术（即微波理论）。低频模拟与微波设计之间最根本的区别是：微波设计中传输线的概念至关重要，而低频模拟设计则不然。众所周知，频率升高意味着波长减小。这对射频/微波电路带来的影响是：当与电路元件的几何尺寸相比时，电压与电流不再保持空间均匀。因此，低频电路理论与高频传输线理论之间的关键差异在于<em>电尺寸</em>：低频电路分析假定网络的物理尺寸远小于电波长，而传输线则可能是波长的可观分数倍甚至多个波长。因此，传输线一般不能用集总参数来描述，而应当是分布参数网络——其上的电压与电流的幅度与相位可以沿长度变化——尽管如此，基尔霍夫定律并不能直接应用；不过若把传输线细分成许多微小（无限小）的小段，在每一小段上电压与电流可以视为不变。</p>
+
+<p>图 2.18 给出了理想传输线，其中 θ = βl 为电长度，β 为传播常数，l 为传输线的物理长度。其对应的链式参数与 S 参数可表示为：</p>
+
+<div class="eq"><span class="math-display">\[[A] = \begin{bmatrix} \cos\theta &amp; jZ_o\sin\theta \\ jY_o\sin\theta &amp; \cos\theta \end{bmatrix}\]</span><span class="eqno">(2.106)</span></div>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.18.png" alt="理想传输线">
+  <div class="cap"><b>图 2.18</b> 理想传输线</div>
+</div>
+
+<div class="eq"><span class="math-display">\[[S] = \begin{bmatrix} 0 &amp; e^{-j\theta} \\ e^{-j\theta} &amp; 0 \end{bmatrix}\]</span><span class="eqno">(2.107)</span></div>
+
+<p>当一段无耗传输线终端接任意负载阻抗 Z<sub>L</sub>、距负载为 l 处的输入阻抗与导纳分别为：</p>
+
+<div class="eq"><span class="math-display">\[Z_{\mathrm{in}} = Z_o\,\frac{Z_L + jZ_o\tan\theta}{Z_o + jZ_L\tan\theta}\]</span><span class="eqno">(2.108)</span></div>
+<div class="eq"><span class="math-display">\[Y_{\mathrm{in}} = Y_o\,\frac{Y_L + jY_o\tan\theta}{Y_o + jY_L\tan\theta}\]</span><span class="eqno">(2.109)</span></div>
+
+<p>其对应的输入反射系数为：</p>
+
+<div class="eq"><span class="math-display">\[\Gamma_{\mathrm{in}} = \frac{Z_{\mathrm{in}} - Z_o}{Z_{\mathrm{in}} + Z_o} = \frac{Y_o - Y_{\mathrm{in}}}{Y_o + Y_{\mathrm{in}}}\]</span><span class="eqno">(2.110)</span></div>
+
+<p>由式 (2.110) 可见，当传输线无耗且终端负载 Z<sub>L</sub> = Z<sub>o</sub> 时无反射 Γ<sub>in</sub> = 0，且无论传输线长度如何输入阻抗始终等于 Z<sub>o</sub>。否则，若 Z<sub>L</sub> ≠ Z<sub>o</sub>，则存在反射，输入阻抗不再等于 Z<sub>o</sub>。</p>
+
+<p>当传输线终端短路（Z<sub>L</sub> = 0）时，其输入阻抗、导纳与反射系数为：</p>
+
+<div class="eq"><span class="math-display">\[Z_{\mathrm{in}} = jZ_o\tan\theta,\quad Y_{\mathrm{in}} = -jY_o\cot\theta,\quad \Gamma_{\mathrm{in}} = -e^{-2j\theta}\]</span><span class="eqno">(2.111)</span></div>
+
+<p>值得指出的是，集总电感可以视为一小段短路传输线（通常 l 小于十分之一波长）；其电感量可表示为</p>
+
+<div class="eq"><span class="math-display">\[L = \frac{Z_o\,l}{\lambda f}\]</span><span class="eqno">(2.112)</span></div>
+
+<p>当传输线终端开路（Z<sub>L</sub> = ∞）时，其输入阻抗、导纳与反射系数为：</p>
+
+<div class="eq"><span class="math-display">\[Z_{\mathrm{in}} = -jZ_o\cot\theta,\quad Y_{\mathrm{in}} = jY_o\tan\theta,\quad \Gamma_{\mathrm{in}} = e^{-2j\theta}\]</span><span class="eqno">(2.113)</span></div>
+
+<p>集总电容可视为一小段开路传输线（通常 l 小于十分之一波长）；其电容量可表示为</p>
+
+<div class="eq"><span class="math-display">\[C = \frac{l}{\lambda f Z_o}\]</span><span class="eqno">(2.114)</span></div>
+
+<p>理想传输线在射频/微波测量中常用于参考面的平移。考虑图 2.19 所示的二端口网络：被测器件（DUT）通过两段相同的传输线分别连到端口 1 与端口 2。该系统的 S 参数可由矢量网络分析仪（VNA）直接测得——测量参考面假定位于 z = l 处，而 DUT 参考面位于 z = 0 处，其中 z 是沿传输线测量的任意坐标。下面说明当参考面从 z = 0 移到 z = l 时，S 参数如何变换。</p>
+
+<p>根据 z = 0 处 S 参数的定义，有</p>
+
+<div class="eq"><span class="math-display">\[b_1(0) = S_{11}\cdot a_1(0) + S_{12}\cdot a_2(0)\]</span><span class="eqno">(2.115)</span></div>
+<div class="eq"><span class="math-display">\[b_2(0) = S_{21}\cdot a_1(0) + S_{22}\cdot a_2(0)\]</span><span class="eqno">(2.116)</span></div>
+
+<p>由无耗传输线上的行波理论，有</p>
+
+<div class="eq"><span class="math-display">\[a_j(l) = a_j(0)\,e^{-j\theta}\quad j = 1, 2\]</span><span class="eqno">(2.117)</span></div>
+<div class="eq"><span class="math-display">\[b_j(l) = b_j(0)\,e^{j\theta}\quad j = 1, 2\]</span><span class="eqno">(2.118)</span></div>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.19.png" alt="二端口网络参考面的平移">
+  <div class="cap"><b>图 2.19</b> 二端口网络参考面的平移</div>
+</div>
+
+<p>将式 (2.117) 和 (2.118) 代入式 (2.115) 和 (2.116)，得</p>
+
+<div class="eq"><span class="math-display">\[\begin{bmatrix} b_1(l) \\ b_2(l) \end{bmatrix} = \begin{bmatrix} e^{j\theta} &amp; 0 \\ 0 &amp; e^{j\theta} \end{bmatrix}\begin{bmatrix} S_{11} &amp; S_{12} \\ S_{21} &amp; S_{22} \end{bmatrix}\begin{bmatrix} e^{j\theta} &amp; 0 \\ 0 &amp; e^{j\theta} \end{bmatrix}\begin{bmatrix} a_1(l) \\ a_2(l) \end{bmatrix}\]</span><span class="eqno">(2.119)</span></div>
+
+<p>这清楚地表明平移后网络的 S 参数由三个矩阵构成：</p>
+
+<div class="eq"><span class="math-display">\[\begin{bmatrix} S_{11}^D &amp; S_{12}^D \\ S_{21}^D &amp; S_{22}^D \end{bmatrix} = \begin{bmatrix} S_{11}\,e^{j2\theta} &amp; S_{12}\,e^{j2\theta} \\ S_{21}\,e^{j2\theta} &amp; S_{22}\,e^{j2\theta} \end{bmatrix}\]</span><span class="eqno">(2.120)</span></div>
+
+<p>这一形式的物理意义非常直观。注意 S<sup>D</sup><sub>ii</sub> = S<sub>ii</sub> e<sup>j2θ</sup>（i = 1, 2），即 S<sub>ii</sub> 的相位被平移了传输线电长度 (2θ) 的两倍——这是因为入射与反射两次经过这段长度所造成的。同样，交叉项 S<sub>12</sub> 与 S<sub>21</sub> 的相位也偏移 2θ，原因是整个输入/输出结构都包含了这两段传输线。</p>
+
+<h2 id="s2-4">2.4 π 型与 T 型网络</h2>
+
+<p>π 型与 T 型网络是电路分析中最常用的二端口网络，因为它们都能极大地简化复杂网络的分析。多数半导体器件的参数提取方法都建立在 π 型与 T 型网络的相互关系之上。</p>
+
+<h3>2.4.1 T 型网络</h3>
+
+<p>典型 T 型网络的示意图如图 2.20 所示；其对应的 Z 参数可写为：</p>
+
+<div class="eq"><span class="math-display">\[Z_{11} = Z_A + Z_B\]</span><span class="eqno">(2.121)</span></div>
+<div class="eq"><span class="math-display">\[Z_{12} = Z_{21} = Z_B\]</span><span class="eqno">(2.122)</span></div>
+<div class="eq"><span class="math-display">\[Z_{22} = Z_B + Z_C\]</span><span class="eqno">(2.123)</span></div>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.20.png" alt="T 型网络作为二端口网络">
+  <div class="cap"><b>图 2.20</b> T 型网络作为二端口网络</div>
+</div>
+
+<p>其对应的 Y、ABCD 与 S 参数可表示如下：</p>
+
+<div class="eq"><span class="math-display">\[\begin{bmatrix} Y \end{bmatrix} = \frac{1}{Z_A Z_B + Z_B Z_C + Z_A Z_C}\begin{bmatrix} Z_B + Z_C &amp; -Z_B \\ -Z_B &amp; Z_A + Z_B \end{bmatrix}\]</span><span class="eqno">(2.124)</span></div>
+<div class="eq"><span class="math-display">\[\begin{bmatrix} ABCD \end{bmatrix} = \begin{bmatrix} 1 + \dfrac{Z_A}{Z_B} &amp; Z_C + Z_A\!\left(\dfrac{Z_C}{Z_B} + 1\right) \\ \dfrac{1}{Z_B} &amp; 1 + \dfrac{Z_C}{Z_B} \end{bmatrix}\]</span><span class="eqno">(2.125)</span></div>
+
+<p>其中（公共中间量）</p>
+
+<div class="eq"><span class="math-display">\[T = Z_A Z_B + Z_A Z_C + Z_B Z_C\]</span></div>
+
+<div class="eq"><span class="math-display">\[\begin{bmatrix} S \end{bmatrix} = \frac{1}{Z_o^{2} + (Z_A + Z_C + 2Z_B)Z_o + T}\begin{bmatrix}-Z_o^{2} + (Z_A - Z_C)Z_o + T &amp; 2Z_o Z_B \\2Z_o Z_B &amp; -Z_o^{2} - (Z_A - Z_C)Z_o + T\end{bmatrix}\]</span><span class="eqno">(2.126)</span></div>
+
+<p>对于无源 T 型网络，阻抗噪声相关矩阵为：</p>
+
+<div class="eq"><span class="math-display">\[C_Z = 4kT\,\mathrm{Re}\begin{bmatrix} Z_A + Z_B &amp; Z_B \\ Z_B &amp; Z_B + Z_C \end{bmatrix}= 4kT\begin{bmatrix} R_A + R_B &amp; R_B \\ R_B &amp; R_B + R_C \end{bmatrix}\]</span><span class="eqno">(2.127)</span></div>
+
+<p>其中 R<sub>A</sub>、R<sub>B</sub>、R<sub>C</sub> 分别为 Z<sub>A</sub>、Z<sub>B</sub>、Z<sub>C</sub> 的实部。</p>
+
+<p>相应的导纳噪声相关矩阵为：</p>
+
+<div class="eq"><span class="math-display">\[C_Y = \frac{4kT}{|N|^{2}}\begin{bmatrix} D &amp; R_B \\ R_B &amp; D \end{bmatrix}\]</span><span class="eqno">(2.128)</span></div>
+
+<p>其中</p>
+
+<div class="eq"><span class="math-display">\[D = |Z_C|^{2}(R_A + R_B) + |Z_B|^{2}(R_A + R_C) + \mathrm{Re}\{Z_A Z_B Z_C^{*}\} + \mathrm{Re}\{Z_A Z_C Z_B^{*}\}\]</span></div>
+
+<div class="eq"><span class="math-display">\[N = Z_A Z_B + Z_A Z_C + Z_B Z_C\]</span></div>
+
+<h3>2.4.2 π 型网络</h3>
+
+<p>典型 π 型网络（其名称源于该网络与希腊字母 π 的形状相似）的示意图如图 2.21 所示；其对应的 Y 参数可写为：</p>
+
+<div class="eq"><span class="math-display">\[Y_{11} = \frac{1}{Z_1} + \frac{1}{Z_2}\]</span><span class="eqno">(2.129)</span></div>
+<div class="eq"><span class="math-display">\[Y_{12} = Y_{21} = -\frac{1}{Z_2}\]</span><span class="eqno">(2.130)</span></div>
+<div class="eq"><span class="math-display">\[Y_{22} = \frac{1}{Z_3} + \frac{1}{Z_2}\]</span><span class="eqno">(2.131)</span></div>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.21.png" alt="π 型网络作为二端口网络">
+  <div class="cap"><b>图 2.21</b> π 型网络作为二端口网络</div>
+</div>
+
+<p>其对应的 Z、ABCD 与 S 参数可表示如下：</p>
+
+<div class="eq"><span class="math-display">\[\begin{bmatrix} Z \end{bmatrix} = \frac{1}{Z_1 + Z_2 + Z_3}\begin{bmatrix} Z_1(Z_2 + Z_3) &amp; Z_1 Z_3 \\ Z_1 Z_3 &amp; Z_3(Z_1 + Z_2) \end{bmatrix}\]</span><span class="eqno">(2.132)</span></div>
+<div class="eq"><span class="math-display">\[\begin{bmatrix} ABCD \end{bmatrix} = \begin{bmatrix} 1 + \dfrac{Z_2}{Z_3} &amp; Z_2 \\ \dfrac{1}{Z_1}\!\left(1 + \dfrac{Z_2}{Z_3}\right) + \dfrac{1}{Z_3} &amp; 1 + \dfrac{Z_2}{Z_1} \end{bmatrix}\]</span><span class="eqno">(2.133)</span></div>
+
+<p>其中（公共中间量）</p>
+
+<div class="eq"><span class="math-display">\[T = Y_1 Y_2 + Y_1 Y_3 + Y_2 Y_3\]</span></div>
+
+<div class="eq"><span class="math-display">\[Y_1 = \frac{1}{Z_1}\]</span></div>
+<div class="eq"><span class="math-display">\[Y_2 = \frac{1}{Z_2}\]</span></div>
+<div class="eq"><span class="math-display">\[Y_3 = \frac{1}{Z_3}\]</span></div>
+
+<div class="eq"><span class="math-display">\[\begin{bmatrix} S \end{bmatrix} = \frac{1}{Y_o^{2} + (Y_1 + Y_3 + 2Y_2)Y_o + T}\begin{bmatrix}Y_o^{2} - (Y_1 - Y_3)Y_o - T &amp; 2Y_o Y_2 \\2Y_o Y_2 &amp; Y_o^{2} + (Y_1 - Y_3)Y_o - T\end{bmatrix}\]</span><span class="eqno">(2.134)</span></div>
+
+<p>对于无源 π 型网络，导纳噪声相关矩阵为：</p>
+
+<div class="eq"><span class="math-display">\[C_Y = 4kT\,\mathrm{Re}\begin{bmatrix} Y_1 + Y_2 &amp; -Y_2 \\ -Y_2 &amp; Y_2 + Y_3 \end{bmatrix}= 4kT\begin{bmatrix} G_1 + G_2 &amp; -G_2 \\ -G_2 &amp; G_2 + G_3 \end{bmatrix}\]</span><span class="eqno">(2.135)</span></div>
+
+<p>其中 G<sub>1</sub>、G<sub>2</sub>、G<sub>3</sub> 分别为导纳 Y<sub>1</sub>、Y<sub>2</sub>、Y<sub>3</sub> 的实部。</p>
+
+<h3>2.4.3 π 型与 T 型网络的相互关系</h3>
+
+<p>π 型网络的每个元件都可以通过相应的定义式转换为 T 型网络。π 型与 T 型网络的相互转换关系可表示为：</p>
+
+<div class="eq"><span class="math-display">\[Z_A = \frac{Z_1 Z_2}{Z_1 + Z_2 + Z_3}\]</span><span class="eqno">(2.136)</span></div>
+<div class="eq"><span class="math-display">\[Z_B = \frac{Z_1 Z_3}{Z_1 + Z_2 + Z_3}\]</span><span class="eqno">(2.137)</span></div>
+<div class="eq"><span class="math-display">\[Z_C = \frac{Z_2 Z_3}{Z_1 + Z_2 + Z_3}\]</span><span class="eqno">(2.138)</span></div>
+
+<div class="eq"><span class="math-display">\[Z_1 = \frac{Z_A Z_B + Z_B Z_C + Z_A Z_C}{Z_C}\]</span><span class="eqno">(2.139)</span></div>
+<div class="eq"><span class="math-display">\[Z_2 = \frac{Z_A Z_B + Z_B Z_C + Z_A Z_C}{Z_B}\]</span><span class="eqno">(2.140)</span></div>
+<div class="eq"><span class="math-display">\[Z_3 = \frac{Z_A Z_B + Z_B Z_C + Z_A Z_C}{Z_A}\]</span><span class="eqno">(2.141)</span></div>
+
+<p>上述关系为 π 型与 T 型网络的相互转换提供了一座双向桥梁，是化简复杂电路网络的强有力手段。化简技术让我们能把更复杂的结构只用欧姆定律结合基尔霍夫定律来分析。因此，从化简后的电路网络可得到一组简洁的信号参数表达式，对半导体器件模型参数的确定非常有价值。</p>
+
+<p>考虑一个复杂的 π 型结构（如图 2.22a 所示），它由一个 T 型网络（图 2.22a 中虚线框内）与三个与之并联的元件组成。由于节点数超过两个，Y 参数无法直接由节点电压法写出。图 2.22 给出了更详细的化简过程：第一步是把 T 型网络（图 2.22a 中虚线框）转换为 π 型网络（图 2.22b 中虚线框），然后通过串-并联组合进一步化简所得电路。化简后的 π 型网络（图 2.22c）所对应的 Y 参数可表示如下：</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.22.png" alt="复杂 π 型网络的化简过程">
+  <div class="cap"><b>图 2.22</b> 复杂 π 型网络的化简过程：（a）复杂 π 型结构；（b）T 型网络向 π 型网络的转换；（c）化简后的 π 型网络</div>
+</div>
+
+<div class="eq"><span class="math-display">\[Y_{11} = \frac{1}{Z_1^{\prime}} + \frac{1}{Z_2^{\prime}}= \frac{1}{Z_1} + \frac{1}{Z_D} + \frac{1}{Z_2} + \frac{1}{Z_E}\]</span><span class="eqno">(2.142)</span></div>
+<div class="eq"><span class="math-display">\[Y_{12} = Y_{21} = -\frac{1}{Z_2^{\prime}}= -\!\left(\frac{1}{Z_2} + \frac{1}{Z_E}\right)\]</span><span class="eqno">(2.143)</span></div>
+<div class="eq"><span class="math-display">\[Y_{22} = \frac{1}{Z_3^{\prime}} + \frac{1}{Z_2^{\prime}}= \frac{1}{Z_3} + \frac{1}{Z_F} + \frac{1}{Z_2} + \frac{1}{Z_E}\]</span><span class="eqno">(2.144)</span></div>
+
+<p>考虑另一个反向的例子，复杂 T 型结构（如图 2.23a 所示），它由一个 π 型网络（图 2.23a 中虚线框内）与三个与之串联的元件组成。由于节点数超过两个，Z 参数无法直接由节点电压法写出，因此必须化简。图 2.23 给出了更详细的化简过程：第一步是把 π 型网络（图 2.23a 中虚线框）转换为 T 型网络（图 2.23b 中虚线框），然后通过串-并联组合进一步化简所得电路。化简后的 T 型网络（图 2.23c）所对应的 Z 参数可表示如下：</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.23.png" alt="复杂 T 型网络的化简过程">
+  <div class="cap"><b>图 2.23</b> 复杂 T 型网络的化简过程：（a）复杂 T 型结构；（b）π 型网络向 T 型网络的转换；（c）化简后的 T 型网络</div>
+</div>
+
+<div class="eq"><span class="math-display">\[Z_{11} = Z_A^{\prime} + Z_B^{\prime} = Z_A + Z_B + Z_5 + Z_6\]</span><span class="eqno">(2.145)</span></div>
+<div class="eq"><span class="math-display">\[Z_{12} = Z_{21} = Z_B^{\prime} = Z_B + Z_6\]</span><span class="eqno">(2.146)</span></div>
+<div class="eq"><span class="math-display">\[Z_{22} = Z_C^{\prime} + Z_B^{\prime} = Z_C + Z_B + Z_7 + Z_6\]</span><span class="eqno">(2.147)</span></div>
+
+<h2 id="s2-5">2.5 去嵌入方法</h2>
+
+<p>众所周知，直接把共面探针放在器件上进行测量是不可能的。实际上，测量必须经由探针压焊点（pad）与互连走线才能到达 DUT。缺点是压焊点与互连引入的寄生效应可能比被测器件本身还大。去嵌入（deembedding）的目的就是去除由压焊点图形与馈线（或键合线）带来的寄生效应——去嵌入本质上就是二端口网络互联的逆运算。类似地，去嵌入技术有三种应用方式：并联、串联与级联去嵌入。详细过程将在下面逐一讨论。</p>
+
+<h3>2.5.1 并联去嵌入</h3>
+
+<p>图 2.24 给出了与 DUT 并联的三个寄生元件。为得到 DUT 自身的响应，并联去嵌入可以按如下步骤进行：</p>
+
+<ol>
+  <li>测量含寄生元件器件的 S 参数；</li>
+  <li>把 S 参数转换为 Y 参数；</li>
+  <li>减去并联寄生元件：</li>
+</ol>
+
+<div class="eq"><span class="math-display">\[Y_{11}^{\mathrm{DUT}} = Y_{11}^{\mathrm{M}} - Y_{11}^{\mathrm{P}}\]</span><span class="eqno">(2.148)</span></div>
+<div class="eq"><span class="math-display">\[Y_{12}^{\mathrm{DUT}} = Y_{12}^{\mathrm{M}} - Y_{12}^{\mathrm{P}}\]</span><span class="eqno">(2.149)</span></div>
+<div class="eq"><span class="math-display">\[Y_{21}^{\mathrm{DUT}} = Y_{21}^{\mathrm{M}} - Y_{21}^{\mathrm{P}}\]</span><span class="eqno">(2.150)</span></div>
+<div class="eq"><span class="math-display">\[Y_{22}^{\mathrm{DUT}} = Y_{22}^{\mathrm{M}} - Y_{22}^{\mathrm{P}}\]</span><span class="eqno">(2.151)</span></div>
+
+<p>其中</p>
+
+<div class="eq"><span class="math-display">\[Y_{11}^{\mathrm{P}} = Y_1 + Y_3\]</span><span class="eqno">(2.152)</span></div>
+<div class="eq"><span class="math-display">\[Y_{12}^{\mathrm{P}} = -Y_3\]</span><span class="eqno">(2.153)</span></div>
+<div class="eq"><span class="math-display">\[Y_{21}^{\mathrm{P}} = -Y_3\]</span><span class="eqno">(2.154)</span></div>
+<div class="eq"><span class="math-display">\[Y_{22}^{\mathrm{P}} = Y_2 + Y_3\]</span><span class="eqno">(2.155)</span></div>
+
+<p>上标 M 表示测量数据，P 表示寄生元件，DUT 表示被测器件。</p>
+
+<p>4. 把 Y 参数转换回 S 参数。</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.24.png" alt="与 DUT 并联的寄生元件">
+  <div class="cap"><b>图 2.24</b> 与 DUT 并联的寄生元件</div>
+</div>
+
+<p>此外，负元件法也可用于并联去嵌入，如图 2.25 所示：在寄生元件相同的位置，通过给原网络再并联三个取负值的元件，即可消除寄生元件的影响。</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.25.png" alt="用于并联去嵌入的负元件法">
+  <div class="cap"><b>图 2.25</b> 用于并联去嵌入的负元件法</div>
+</div>
+
+<h3>2.5.2 串联去嵌入</h3>
+
+<p>串联去嵌入技术是指去除与 DUT 串联的寄生效应，例如探针压焊点与探针针尖之间的接触电阻、互连线的串联损耗等。图 2.26 给出了与 DUT 串联的三个寄生元件。为得到 DUT 自身的响应，串联去嵌入可以按如下步骤进行：</p>
+
+<ol>
+  <li>测量含寄生元件器件的 S 参数；</li>
+  <li>把 S 参数转换为 Z 参数；</li>
+  <li>减去串联寄生元件：</li>
+</ol>
+
+<div class="eq"><span class="math-display">\[Z_{11}^{\mathrm{DUT}} = Z_{11}^{\mathrm{M}} - Z_{11}^{\mathrm{S}}\]</span><span class="eqno">(2.156)</span></div>
+<div class="eq"><span class="math-display">\[Z_{12}^{\mathrm{DUT}} = Z_{12}^{\mathrm{M}} - Z_{12}^{\mathrm{S}}\]</span><span class="eqno">(2.157)</span></div>
+<div class="eq"><span class="math-display">\[Z_{21}^{\mathrm{DUT}} = Z_{21}^{\mathrm{M}} - Z_{21}^{\mathrm{S}}\]</span><span class="eqno">(2.158)</span></div>
+<div class="eq"><span class="math-display">\[Z_{22}^{\mathrm{DUT}} = Z_{22}^{\mathrm{M}} - Z_{22}^{\mathrm{S}}\]</span><span class="eqno">(2.159)</span></div>
+
+<p>其中串联网络的 Z 参数可表示如下：</p>
+
+<div class="eq"><span class="math-display">\[Z_{11}^{\mathrm{S}} = Z_1 + Z_3\]</span><span class="eqno">(2.160)</span></div>
+<div class="eq"><span class="math-display">\[Z_{12}^{\mathrm{S}} = Z_3\]</span><span class="eqno">(2.161)</span></div>
+<div class="eq"><span class="math-display">\[Z_{21}^{\mathrm{S}} = Z_3\]</span><span class="eqno">(2.162)</span></div>
+<div class="eq"><span class="math-display">\[Z_{22}^{\mathrm{S}} = Z_2 + Z_3\]</span><span class="eqno">(2.163)</span></div>
+
+<p>上标 M 表示测量数据，S 表示串联网络，DUT 表示被测器件。</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.26.png" alt="与 DUT 串联的寄生元件">
+  <div class="cap"><b>图 2.26</b> 与 DUT 串联的寄生元件</div>
+</div>
+
+<p>同样，负元件法也可用于串联去嵌入，如图 2.27 所示：在寄生元件相同的位置，通过给原网络再串联三个取负值的元件，即可消除寄生元件的影响。</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.27.png" alt="用于串联去嵌入的负元件法">
+  <div class="cap"><b>图 2.27</b> 用于串联去嵌入的负元件法</div>
+</div>
+
+<h3>2.5.3 级联去嵌入</h3>
+
+<p>假设两个寄生网络与 DUT 网络级联，相应电路如图 2.28 所示。链式参数可表示为：</p>
+
+<div class="eq"><span class="math-display">\[A^{\mathrm{DUT}} = A_1^{-1}\,A^{\mathrm{M}}\,A_2^{-1}\]</span><span class="eqno">(2.164)</span></div>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.28.png" alt="级联去嵌入的等效电路">
+  <div class="cap"><b>图 2.28</b> 级联去嵌入的等效电路</div>
+</div>
+
+<p>其中</p>
+
+<ul>
+  <li>A<sup>DUT</sup> = DUT 的链式参数；</li>
+  <li>A<sub>1</sub> = 寄生网络 I 的链式参数；</li>
+  <li>A<sub>2</sub> = 寄生网络 II 的链式参数。</li>
+</ul>
+
+<h2 id="s2-6">2.6 参数提取的基本方法</h2>
+
+<p>众所周知，电路模型的精度取决于相应的参数提取技术。若提取出的模型参数与真实值偏差较大，该模型就无法用于电路设计。因此，模型参数的确定应符合物理意义。本节将分别介绍电阻、电容与电感的基本参数提取技术。</p>
+
+<h3>2.6.1 电容的确定</h3>
+
+<p>微波集成电路中常见元件之一是叉指电容（interdigital capacitor），它是微带工艺中构建几皮法级电容的常用元件。图 2.29a 给出了平面微带叉指电容，它由形成在半导体层顶面的一对叉指电极构成。叉指电极、连接图形与压焊点可视为两块分离的极板。当单片叉指电容的最大尺寸小于工作频率下介质薄膜中波长的 1/10 时，该电容可以用一个等效电路表示，如图 2.29b 所示。去除压焊点电容 C<sub>P</sub> 后，叉指电容 C 可由本征部分的 Z 参数求得：</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.29.png" alt="单片叉指电容：（a）版图与（b）等效电路模型">
+  <div class="cap"><b>图 2.29</b> 单片叉指电容：（a）版图；（b）等效电路模型</div>
+</div>
+
+<div class="eq"><span class="math-display">\[C = -\frac{1}{\omega\,\mathrm{Im}(Z)}\]</span><span class="eqno">(2.165)</span></div>
+
+<p>其中</p>
+
+<div class="eq"><span class="math-display">\[Z = R_s + \frac{1}{j\omega C}\]</span></div>
+
+<p>图 2.30 给出了典型的提取电容随频率的变化曲线。可以看到，电容可以在低频段确定，其幅度变化非常小、几乎可以忽略。随着频率升高，寄生元件（如外征电阻与电感）的影响越来越大，幅度的变化便不可忽略。</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.30.png" alt="提取电容随频率的变化">
+  <div class="cap"><b>图 2.30</b> 提取电容随频率的变化</div>
+</div>
+
+<h3>2.6.2 电感的确定</h3>
+
+<p>利用当今主流 GaAs 工艺常规提供的多层互连，可以在 GaAs 衬底上制作螺旋电感。构建基本螺旋线圈以及把线圈内端引出到外部的下穿接触，至少需要两层金属。电感的横向结构由匝数、线宽与线间距（W 与 S）以及覆盖总面积决定。一个简单的集总元件模型足以描述器件的电学特性（图 2.31）。螺旋线圈本身用理想电感 L 与串联电阻 R<sub>s</sub> 建模，R<sub>s</sub> 表示线圈中的欧姆损耗。</p>
+
+<p>去除压焊点电容 C<sub>P</sub> 后，螺旋电感 L 可由本征部分的 Z 参数求得：</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.31.png" alt="单片螺旋电感：（a）版图与（b）等效电路模型">
+  <div class="cap"><b>图 2.31</b> 单片螺旋电感：（a）版图；（b）等效电路模型</div>
+</div>
+
+<div class="eq"><span class="math-display">\[L = \frac{\mathrm{Im}(Z)}{\omega}\]</span><span class="eqno">(2.166)</span></div>
+
+<p>其中</p>
+
+<div class="eq"><span class="math-display">\[Z = R_s + j\omega L\]</span></div>
+
+<p>图 2.32 给出了典型的提取电感随频率的变化曲线。可以看到，电感可以在高频段确定，其幅度变化非常小、几乎可以忽略。低频时电感的阻抗非常小，难以与寄生元件区分。随着频率升高，电感的作用越来越大，并在高频段占主导地位。</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.32.png" alt="提取电感随频率的变化">
+  <div class="cap"><b>图 2.32</b> 提取电感随频率的变化</div>
+</div>
+
+<h3>2.6.3 电阻的确定</h3>
+
+<p>通常，在半导体器件的等效电路模型中电阻与电感、电容串联，如图 2.33 所示；电阻可以按下式确定：</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.33.png" alt="电阻与电感、电容串联：（a）RC 网络与（b）RL 网络">
+  <div class="cap"><b>图 2.33</b> 电阻与电感、电容串联：（a）RC 网络；（b）RL 网络</div>
+</div>
+
+<div class="eq"><span class="math-display">\[R = \mathrm{Re}\,(Z)\]</span><span class="eqno">(2.167)</span></div>
+
+<p>对于 RC 串联网络，高频时电容性器件电流足够大，足以可靠地提取串联元件。随着频率升高，电阻的作用越来越占主导，而电容则趋于低阻抗、近似短路。因此，电阻必须在<em>高频段</em>提取（如图 2.34 所示）。对于 RL 串联网络，确定电阻的最佳频段则在<em>低频段</em>，如图 2.35 所示。</p>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.34.png" alt="RC 串联网络的提取电阻">
+  <div class="cap"><b>图 2.34</b> RC 串联网络的提取电阻</div>
+</div>
+
+<div class="figure">
+  <img src="ch2_figs/Figure_2.35.png" alt="RL 串联网络的提取电阻">
+  <div class="cap"><b>图 2.35</b> RL 串联网络的提取电阻</div>
+</div>
+
+<h2 id="s2-7">2.7 小结</h2>
+
+<p>本章定义了二端口网络的信号参数与噪声参数，给出了各种信号参数之间的关系，并介绍了各种噪声参数（如 Z、Y、ABCD 与 S 参数）之间的关系。最后一节介绍了电阻、电容与电感的基本参数提取技术。</p>
+
+<h2 id="s2-ref">参考文献</h2>
+
+<ol class="refs">
+  <li>Ludwig, P. and Bretchko, P. (2000) <i>RF Circuit Design: Theory and Applications</i>, Prentice Hall PTR, Upper Saddle River.</li>
+  <li>Lee, T. (2004) <i>The Design of CMOS Radio-frequency Integrated Circuits</i>, Cambridge University Press, Cambridge/New York.</li>
+  <li>Riddle, A., Steer, M.B., Fiedziuszko, S.J. et al. (2001) Passive technologies, in <i>The RF and Microwave Handbook</i> (ed M. Golio), CRC Press LLC, Roca Raton.</li>
+  <li>Rothe, H. and Dahlke, W. (1956) Theory of noisy four poles. <i>Proceedings of the IRE</i>, 44, 811–818.</li>
+  <li>Haus, H.A. (1960) Representation of noise in linear two-ports. <i>Proceedings of the IRE</i>, 48, 69–74.</li>
+  <li>Hillbrand, H. and Russer, P. (1976) An efficient method for computer-aided noise analysis of linear amplifier networks. <i>IEEE Transactions on Circuits and System</i>, CAS-23, 235–238.</li>
+  <li>Dobrowolski, J.A. (1991) <i>Introduction to Computer Methods for Microwave Circuit Analysis and Design</i>, Artech House Inc, Boston.</li>
+</ol>
+
+</body>
+</html>

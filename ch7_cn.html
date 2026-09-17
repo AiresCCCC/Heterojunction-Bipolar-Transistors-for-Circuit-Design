@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: true
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+  },
+  chtml: {
+    scale: 1
+  },
+  startup: {
+    pageReady: () => MathJax.startup.defaultPageReady().then(() => {
+      const updateFormulaOverflow = () => {
+        document.querySelectorAll('.math-display').forEach((formula) => {
+          const math = formula.querySelector('mjx-math') || formula.querySelector('mjx-container');
+          const mathWidth = math ? math.getBoundingClientRect().width : 0;
+          formula.classList.toggle('math-overflow', mathWidth > formula.clientWidth + 4);
+        });
+      };
+      updateFormulaOverflow();
+      if (window.ResizeObserver) {
+        const observer = new ResizeObserver(updateFormulaOverflow);
+        document.querySelectorAll('.math-display').forEach((formula) => observer.observe(formula));
+      }
+    })
+  }
+};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第7章 HBT微波噪声建模与参数提取技术</title>
+<style>
+/* ===== HBT 中文译本 · 统一标准样式 ===== */
+  :root {
+    --ink: #1a1a1a; --muted: #5a6470; --accent: #2a4d8f; --rule: #d8dce2;
+    --bg: #ffffff; --soft: #f7f8fa;
+    --serif: "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", "STSong", "SimSun", Georgia, "Times New Roman", serif;
+    --sans: "Source Han Sans SC", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", "Heiti SC", Helvetica, Arial, sans-serif;
+    --mono: "Cambria Math", "STIX Two Math", "Latin Modern Math", "Times New Roman", serif;
+  }
+  html, body { background: var(--bg); color: var(--ink); }
+  body { font-family: var(--serif); max-width: 880px; margin: 0 auto;
+         padding: 46px 26px 64px; line-height: 1.78; }
+  header { border-bottom: 1px solid var(--rule); padding-bottom: 18px; margin-bottom: 30px; }
+  .kicker { font-family: var(--sans); font-size: 0.78em; letter-spacing: 0.14em;
+            text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: var(--serif); font-size: 1.7em; line-height: 1.4;
+       margin: 12px 0 6px; font-weight: 600; }
+  .ch-num { font-family: var(--sans); color: var(--accent); font-size: 0.85em;
+            letter-spacing: 0.08em; }
+  .credit { font-family: var(--sans); font-size: 0.78em; color: var(--muted);
+            margin-top: 18px; line-height: 1.55; }
+  h2 { font-family: var(--serif); font-size: 1.32em; margin: 36px 0 14px;
+       border-bottom: 1px solid var(--rule); padding-bottom: 6px; font-weight: 600; }
+  h3 { font-family: var(--serif); font-size: 1.12em; margin: 26px 0 10px; font-weight: 600; }
+  h4 { font-family: var(--serif); font-size: 1.0em; margin: 22px 0 8px;
+       font-weight: 600; color: #222; }
+  p { margin: 0 0 12px; text-align: justify; }
+  ul { margin: 6px 0 14px; padding-left: 22px; }
+  ol { margin: 6px 0 14px; padding-left: 24px; }
+  li { margin: 2px 0; }
+  .figure { margin: 22px auto; text-align: center; }
+  .figure img { max-width: 100%; height: auto; border: 1px solid var(--rule);
+                border-radius: 2px; background: #fff; }
+  .figure .cap { font-family: var(--sans); font-size: 0.86em; color: var(--muted);
+                 margin-top: 8px; line-height: 1.5; }
+  .eq { position: relative; display: flex; align-items: center;
+        justify-content: center; margin: 10px 0; }
+  /* 公式编号：绝对定位贴正文右边界，垂直居中 */
+  .eq .eqno { position: absolute; right: 0; top: 50%;
+              transform: translateY(-50%); z-index: 2;
+              padding-left: .5em; background: var(--bg);
+              font-family: var(--sans);
+              font-size: 0.88em; color: var(--muted); white-space: nowrap; }
+  /* 公式本体留出编号通道，避免宽公式与右对齐编号重叠 */
+  .eq .math-display { display: block; flex: 0 1 auto; width: max-content; min-width: 0;
+                       max-width: calc(100% - 7.5em); overflow-x: hidden; overflow-y: hidden;
+                       padding: 2px 0; box-sizing: border-box; }
+  .eq .eqtag { font-family: var(--sans); font-size: 0.88em;
+               color: var(--muted); margin-left: 10px; white-space: nowrap; }
+  .eqdef { display: flex; align-items: center; gap: 18px; margin: 6px 0 12px; }
+  .eqdef .math-display { flex: 0 1 auto; width: max-content; max-width: 46%;
+                         overflow-x: hidden; overflow-y: hidden; padding: 2px 0;
+                         box-sizing: border-box; }
+  .math-display.math-overflow { overflow-x: auto; }
+  .eqdef .meaning { flex: 1; font-size: 0.95em; line-height: 1.4; color: #222; }
+  .src { font-family: var(--sans); font-size: 0.76em; color: var(--muted);
+         margin-top: 4px; }
+  ol.refs { font-family: var(--sans); font-size: 0.85em; line-height: 1.6;
+            color: #333; padding-left: 26px; }
+  ol.refs li { margin: 4px 0; }
+  @media (max-width: 700px) {
+    body { padding: 24px 16px 40px; }
+    .eq .eqno { position: static; transform: none; margin-left: 8px; }
+  }
+  .ov { text-decoration: overline; }
+  .ieq { vertical-align: -0.2em; }
+</style>
+</head>
+<body>
+<div class="page">
+<header class="chapter-head">
+  <div class="chapter-no">第 7 章</div>
+  <h1>HBT微波噪声建模与参数提取技术</h1>
+  <p class="chapter-intro">随着模拟与数字通信对高速度和高信噪比（SNR）需求的不断增长，高频低噪声电路与系统正变得日益重要。低噪声设计是大多数射频接收机电路的关键问题之一。一个特别重要的应用是单片微波集成电路（MMIC），其中高精度、随偏置和温度变化的噪声模型对于设计的首次成功至关重要。为了对低噪声放大器（LNA）进行计算机辅助设计（CAD），必须完整地表征晶体管的噪声参数和散射参数。因此，准确的高频噪声建模对于缩短开发周期、开发LNA不可或缺。图7.1给出了HBT噪声建模流程的典型框图<sup>[1, 2]</sup>。</p>
+  <p class="chapter-intro">从图7.1可以看出，小信号等效电路模型是噪声等效电路模型的基础。本征噪声源包括散粒噪声、热噪声和低频噪声（1/f噪声）。寄生噪声源则是外部电阻产生的热噪声。一个完整的噪声模型既有助于理解HBT内部的噪声源，同时也可用于电路设计。</p>
+  <div class="figure"><img src="ch7_figs/Figure_7.1.png" alt="图7.1 HBT噪声建模流程框图"><div class="cap"><b>图 7.1</b>　HBT 噪声建模流程框图</div></div>
+</header>
+
+
+<section>
+<h2 id="s7-1">7.1 噪声等效电路模型</h2>
+<p>完整的HBT小信号与噪声等效电路模型如图7.2所示。该电路模型由著名的T型小信号等效电路和六个噪声源 <span class="math-inline">\(\overline{e_{bx}^2}\)</span>、<span class="math-inline">\(\overline{e_{bi}^2}\)</span>、<span class="math-inline">\(\overline{e_c^2}\)</span>、<span class="math-inline">\(\overline{e_e^2}\)</span>、<span class="math-inline">\(\overline{i_b^2}\)</span> 与 <span class="math-inline">\(\overline{i_c^2}\)</span> 组成<sup>[2, 3]</sup>。由于T型等效电路与双极晶体管共基Y参数的原始推导更为接近，文献中通常将其用于HBT的小信号建模。此外，与π型等效电路相比，它涉及的简化假设更少。本征等效电路如图7.2b所示，它展示了噪声源及其位置。其中两个噪声源描述pn结直流电流引起的散粒噪声，一个表示本征基极电阻的热噪声。与集电极电流相关的两个噪声源的噪声贡献由同一批电子产生：它们从发射极注入基区，穿越基区后到达集电极，因此这些噪声源之间的相关性由一个时间延迟给出。</p>
+<div class="eq"><span class="math-display">\[\overline{i_b^2} = 2qI_{\mathrm{B}}\Delta f\]</span><span class="eqno">(7.1)</span></div>
+<div class="eq"><span class="math-display">\[\overline{i_c^2} = 2qI_{\mathrm{C}}\Delta f\]</span><span class="eqno">(7.2)</span></div>
+<p>两个相关的电流噪声源 <span class="math-inline">\(\overline{i_b^2}\)</span> 和 <span class="math-inline">\(\overline{i_c^2}\)</span> 代表HBT本征部分的内部噪声源。这两个噪声源由其在中心频率 f 处带宽 Δ f 内的均方值表征，可由以下表达式给出。<span class="math-inline">\(\overline{i_b^2}\)</span> 与 <span class="math-inline">\(\overline{i_c^2}\)</span> 之间的互相关可表示为</p>
+<div class="eq"><span class="math-display">\[\overline{i_b^{*}i_c} = 2qI_{\mathrm{C}}\left(e^{-j\omega\tau}-1\right)\Delta f\]</span><span class="eqno">(7.3)</span></div>
+<p>四个噪声源 <span class="math-inline">\(\overline{e_{bx}^2}\)</span>、<span class="math-inline">\(\overline{e_{bi}^2}\)</span>、<span class="math-inline">\(\overline{e_c^2}\)</span> 和 <span class="math-inline">\(\overline{e_e^2}\)</span> 表示接入电阻 R<sub>bx</sub>、R<sub>bi</sub>、R<sub>c</sub> 和 R<sub>e</sub> 的噪声特性，简单地由下式给出：</p>
+<div class="eq"><span class="math-display">\[\overline{e_{bi}^2} = 4kTR_{bi}\Delta f\]</span><span class="eqno">(7.4)</span></div>
+<div class="eq"><span class="math-display">\[\overline{e_{bx}^2} = 4kTR_{bx}\Delta f\]</span><span class="eqno">(7.5)</span></div>
+<div class="eq"><span class="math-display">\[\overline{e_c^2} = 4kTR_c\Delta f\]</span><span class="eqno">(7.6)</span></div>
+<div class="eq"><span class="math-display">\[\overline{e_e^2} = 4kTR_e\Delta f\]</span><span class="eqno">(7.7)</span></div>
+<p>其中 q 为电子电荷，k 为玻尔兹曼常数，T 为绝对温度，R<sub>i</sub> 为电阻值；τ 为渡越时间延迟，I<sub>B</sub> 和 I<sub>C</sub> 分别为基极和集电极直流电流。</p>
+<div class="figure"><img src="ch7_figs/Figure_7.2.png" alt="图7.2 HBT噪声等效电路模型"><div class="cap"><b>图 7.2</b>　HBT噪声等效电路模型：(a) 寄生部分；(b) 本征部分</div></div>
+<p>在小信号与噪声等效电路模型中（如图7.3所示），L<sub>b</sub>、L<sub>c</sub> 和 L<sub>e</sub> 表示基极、集电极和发射极馈线的电感；C<sub>pb</sub>、C<sub>pc</sub> 和 C<sub>pbc</sub> 表示焊盘电容；R<sub>bx</sub> 和 R<sub>bi</sub> 分别为外部和本征基极电阻；R<sub>c</sub> 和 R<sub>e</sub> 为集电极和发射极电阻；C<sub>ex</sub> 为外部基极—集电极电容；C<sub>be</sub> 和 C<sub>bc</sub> 分别为本征基极—发射极电容和基极—集电极电容。</p>
+<div class="figure"><img src="ch7_figs/Figure_7.3.png" alt="图7.3 HBT小信号与噪声等效电路模型"><div class="cap"><b>图 7.3</b>　HBT小信号与噪声等效电路模型</div></div>
+</section>
+<section>
+<h2 id="s7-2">7.2 噪声参数推导</h2>
+<p>噪声等效电路模型可以分为三部分：输入网络、输出网络和中间网络。输入网络仅包含基极寄生元件（焊盘电容 C<sub>pb</sub> 和串联电感 L<sub>b</sub>），是一个无噪声网络。输出网络由集电极寄生元件（焊盘电容 C<sub>pc</sub>、串联电感 L<sub>c</sub> 和串联电阻 R<sub>c</sub>）组成。中间网络包括本征部分、外部电阻 R<sub>bx</sub> 和 R<sub>e</sub> 以及发射极串联电感 L<sub>e</sub>。基于噪声相关矩阵技术<sup>[4]</sup>，四个未知噪声参数的提取可按如下步骤进行：</p>
+<p class="step">1. 计算不含 R<sub>bi</sub> 和 C<sub>ex</sub> 的HBT本征部分（带有两个噪声源 <span class="math-inline">\(\overline{i_b^2}\)</span> 和 <span class="math-inline">\(\overline{i_c^2}\)</span> 的虚线框）的导纳噪声相关矩阵：</p>
+<div class="eq"><span class="math-display">\[C_{Y11} = \frac{I_{\mathrm{B}}}{2V_{\mathrm{T}}}\]</span><span class="eqno">(7.8)</span></div>
+<div class="eq"><span class="math-display">\[C_{Y22} = \frac{I_{\mathrm{C}}}{2V_{\mathrm{T}}}\]</span><span class="eqno">(7.9)</span></div>
+<div class="eq"><span class="math-display">\[C_{Y21} = \frac{I_{\mathrm{C}}\left(e^{-j\omega\tau}-1\right)}{2V_{\mathrm{T}}}\]</span><span class="eqno">(7.10)</span></div>
+<div class="eq"><span class="math-display">\[C_{Y12} = \frac{I_{\mathrm{C}}\left(e^{j\omega\tau}-1\right)}{2V_{\mathrm{T}}}\]</span><span class="eqno">(7.11)</span></div>
+<p class="step">2. 将导纳噪声相关矩阵变换为阻抗噪声相关矩阵，并加入本征电阻 R<sub>bi</sub>：</p>
+<div class="eq"><span class="math-display">\[C_Z = \begin{bmatrix} C_{Z11} + R_{bi} &amp; C_{Z12} + R_{bi} \\ C_{Z21} + R_{bi} &amp; C_{Z22} + R_{bi} \end{bmatrix}\]</span><span class="eqno">(7.12)</span></div>
+<p class="step">3. 将阻抗噪声相关矩阵变换为导纳噪声相关矩阵，并加入外部电容 C<sub>ex</sub>。这样，本征部分的导纳噪声相关矩阵可由 C<sub>Y11</sub><sup>I</sup> 至 C<sub>Y22</sub><sup>I</sup> 给出：</p>
+<div class="eq"><span class="math-display">\[C_{Y11}^{I} = \frac{C_{Y11} + R_{bi}\left|\left[(1-\alpha)Y_{\mathrm{BE}} + Y_{\mathrm{BC}}\right]\right|^2}{|A|^2}\]</span><span class="eqno">(7.13)</span></div>
+<div class="eq"><span class="math-display">\[C_{Y21}^{I} = \frac{\left(C_{Y21} + R_{bi}\left|Y_{\mathrm{BC}}Y_{\mathrm{BE}}\right|^2\right)\left(-D - \frac{1}{Y_{\mathrm{BE}}Y_{\mathrm{BC}}^{*}} + \frac{\alpha}{\left|Y_{\mathrm{BC}}\right|^2} - \frac{B}{Y_{\mathrm{BE}}^{*}} + \frac{C^{*}\left[Y_{\mathrm{BC}} + (1-\alpha)Y_{\mathrm{BE}}\right]^{*}}{\left(Y_{\mathrm{BC}}Y_{\mathrm{BE}}\right)^{*}}\right)}{|A|^2}\]</span><span class="eqno">(7.14)</span></div>
+<div class="eq"><span class="math-display">\[C_{Y12}^{I} = \left(C_{Y21}^{I}\right)^{*}\]</span><span class="eqno">(7.15)</span></div>
+<div class="eq"><span class="math-display">\[C_{Y22}^{I} = \frac{\left(C_{Y22} + R_{bi}\left|Y_{\mathrm{BC}}Y_{\mathrm{BE}}\right|^2\right)\left(D + B(R_{bi} + 2R_{\mathrm{be}}) - 2\mathrm{Re}\left[\left(\frac{1}{Y_{\mathrm{BE}}} - \frac{\alpha}{Y_{\mathrm{BC}}}\right)C\right]\right)}{|A|^2}\]</span><span class="eqno">(7.16)</span></div>
+<p>其中</p>
+<div class="eq"><span class="math-display">\[A = 1 + R_{bi}\left[Y_{\mathrm{BC}} + (1-\alpha)Y_{\mathrm{BE}}\right]\]</span></div>
+<div class="eq"><span class="math-display">\[B = C_{Y11}\left|\frac{\alpha}{Y_{\mathrm{BC}}}\right|^2 + C_{Y22}\left(\left|\frac{1}{Y_{\mathrm{BE}}}\right|^2 + \left|\frac{1-\alpha}{Y_{\mathrm{BC}}}\right|^2\right) + 2\mathrm{Re}\left\{C_{Y12}\left|\frac{\alpha}{Y_{\mathrm{BC}}}\right|^2 \frac{j\omega}{\alpha_{\mathrm{o}}}\left(\frac{1}{\omega_{\alpha}} + \tau\right)\right\}\]</span></div>
+<div class="eq"><span class="math-display">\[C = \frac{\left(C_{Y11} + C_{Y22}\right)}{\left|Y_{\mathrm{BE}}\right|^2} + \frac{C_{Y22}(1-\alpha^{*}) + C_{Y12}}{Y_{\mathrm{BE}}Y_{\mathrm{BC}}^{*}}\]</span></div>
+<div class="eq"><span class="math-display">\[D = \left|\frac{1}{Y_{\mathrm{BE}}} - \frac{\alpha}{Y_{\mathrm{BC}}}\right|^2\]</span></div>
+<p class="step">4. 通过简单地加入外部电阻 R<sub>bx</sub> 和 R<sub>e</sub>，将导纳噪声相关矩阵变换为链噪声相关矩阵。这一表述形式非常适合四个噪声参数的计算。中间网络的链噪声相关矩阵可由 C<sub>A11</sub><sup>M</sup> 至 C<sub>A22</sub><sup>M</sup> 表示为</p>
+<div class="eq"><span class="math-display">\[C_{A11}^{\mathrm{M}} = \frac{C_{Y22}^{I}}{\left|Y_{21}\right|^2} + R_{bx} + R_{\mathrm{e}}\]</span><span class="eqno">(7.17)</span></div>
+<div class="eq"><span class="math-display">\[C_{A12}^{\mathrm{M}} = \frac{Y_{11}^{*}C_{Y22}^{I} - Y_{21}^{*}C_{Y21}^{I}}{\left|Y_{21}\right|^2}\]</span><span class="eqno">(7.18)</span></div>
+<div class="eq"><span class="math-display">\[C_{A12}^{\mathrm{M}} = \left(C_{A21}^{\mathrm{M}}\right)^{*}\]</span><span class="eqno">(7.19)</span></div>
+<div class="eq"><span class="math-display">\[C_{A22}^{\mathrm{M}} = C_{Y11}^{I} + \frac{\left|Y_{11}\right|^2 C_{Y22}^{I}}{\left|Y_{21}\right|^2} - 2\mathrm{Re}\left(\frac{Y_{11}}{Y_{21}}C_{Y21}^{I}\right)\]</span><span class="eqno">(7.20)</span></div>
+<p>其中上标 M 表示中间网络，Y<sub>11</sub>、Y<sub>12</sub>、Y<sub>21</sub> 和 Y<sub>22</sub> 为扩展了 R<sub>bi</sub> 和 C<sub>ex</sub> 的本征部分（虚线框）的Y参数：</p>
+<div class="eq"><span class="math-display">\[Y_{11} = Y_{\mathrm{EX}} + \frac{Y_{\mathrm{BC}} + (1-\alpha)Y_{\mathrm{BE}}}{A}\]</span><span class="eqno">(7.21)</span></div>
+<div class="eq"><span class="math-display">\[Y_{21} = -Y_{\mathrm{EX}} + \frac{-Y_{\mathrm{BC}} + \alpha Y_{\mathrm{BE}}}{A}\]</span><span class="eqno">(7.22)</span></div>
+<div class="eq"><span class="math-display">\[Y_{12} = -Y_{\mathrm{EX}} + \frac{-Y_{\mathrm{BC}}}{A}\]</span><span class="eqno">(7.23)</span></div>
+<div class="eq"><span class="math-display">\[Y_{22} = Y_{\mathrm{EX}} + \frac{Y_{\mathrm{BC}}\left(1 + Y_{\mathrm{BE}}R_{bi}\right)}{A}\]</span><span class="eqno">(7.24)</span></div>
+<p>其中</p>
+<div class="eq"><span class="math-display">\[Y_{\mathrm{BE}} = \frac{1}{R_{\mathrm{be}}} + j\omega C_{\mathrm{be}}, \quad Y_{\mathrm{BC}} = j\omega C_{\mathrm{bc}}, \quad Y_{\mathrm{EX}} = j\omega C_{\mathrm{ex}}\]</span></div>
+<p class="step">5. 计算输出网络的链噪声相关矩阵：</p>
+<div class="eq"><span class="math-display">\[C_A^{O} = R_{\mathrm{c}}\begin{bmatrix} 1 &amp; 0 \\ 0 &amp; 0 \end{bmatrix}\]</span><span class="eqno">(7.25)</span></div>
+<p class="step">6. 计算中间网络与输出网络级联的链噪声相关矩阵：</p>
+<div class="eq"><span class="math-display">\[C_A&#39; = C_A^{\mathrm{M}} + A_{\mathrm{M}}C_A^{o}A_{\mathrm{M}}^{+}\]</span><span class="eqno">(7.26)</span></div>
+<p>A<sub>M</sub> 为中间网络与输出网络级联的链矩阵，加号表示厄米特共轭。</p>
+<p>所得链噪声相关矩阵 C<sub>A</sub>′ 与噪声参数（不含输入网络）的表达式为</p>
+<div class="eq"><span class="math-display">\[C_{A11}&#39; = C_{A11}^{\mathrm{M}} + R_{\mathrm{c}}\left|E\right|^2\]</span><span class="eqno">(7.27)</span></div>
+<div class="eq"><span class="math-display">\[C_{A12}&#39; = C_{A12}^{\mathrm{M}} + R_{\mathrm{c}}EF^{*}\]</span><span class="eqno">(7.28)</span></div>
+<div class="eq"><span class="math-display">\[C_{A21}&#39; = C_{A21}^{\mathrm{M}} + R_{\mathrm{c}}E^{*}F\]</span><span class="eqno">(7.29)</span></div>
+<div class="eq"><span class="math-display">\[C_{A22}&#39; = C_{A22}^{\mathrm{M}} + R_{\mathrm{c}}\left|F\right|^2\]</span><span class="eqno">(7.30)</span></div>
+<p>其中</p>
+<div class="eq"><span class="math-display">\[E = \frac{\left[(1-\alpha)Y_{\mathrm{EX}} + Y_{\mathrm{BC}}\right]Y_{\mathrm{BE}}R_{bi} + \left[(R_{\mathrm{BX}} + R_{\mathrm{E}})Y_{\mathrm{BE}} + 1\right]\left(Y_{\mathrm{EX}} + Y_{\mathrm{BC}} + R_{bi}Y_{\mathrm{EX}}Y_{\mathrm{BC}}\right)}{\left[-\alpha + (1-\alpha)R_{bi}Y_{\mathrm{EX}}\right]Y_{\mathrm{BE}} + \left(R_{\mathrm{E}}Y_{\mathrm{BE}} + 1\right)\left(Y_{\mathrm{EX}} + Y_{\mathrm{BC}} + R_{bi}Y_{\mathrm{EX}}Y_{\mathrm{BC}}\right)}\]</span></div>
+<div class="eq"><span class="math-display">\[F = \frac{Y_{\mathrm{BE}}\left(Y_{\mathrm{EX}} + Y_{\mathrm{BC}} + R_{bi}Y_{\mathrm{EX}}Y_{\mathrm{BC}}\right)}{\left[-\alpha + (1-\alpha)R_{bi}Y_{\mathrm{EX}}\right]Y_{\mathrm{BE}} + \left(R_{\mathrm{E}}Y_{\mathrm{BE}} + 1\right)\left(Y_{\mathrm{EX}} + Y_{\mathrm{BC}} + R_{bi}Y_{\mathrm{EX}}Y_{\mathrm{BC}}\right)}\]</span></div>
+<p>不含输入网络（C<sub>pb</sub> 和 L<sub>b</sub>）的噪声等效电路模型四个噪声参数的表达式推导如下<sup>[5]</sup>：</p>
+<div class="eq"><span class="math-display">\[R_{\mathrm{n}}&#39; = C_{A11}&#39;\]</span><span class="eqno">(7.31)</span></div>
+<div class="eq"><span class="math-display">\[G_{\mathrm{opt}}&#39; = \sqrt{\frac{C_{A22}&#39;}{C_{A11}&#39;} - \left(\frac{\mathrm{Im}\left(C_{A12}&#39;\right)}{C_{A11}&#39;}\right)^2}\]</span><span class="eqno">(7.32)</span></div>
+<div class="eq"><span class="math-display">\[B_{\mathrm{opt}}&#39; = \frac{\mathrm{Im}\left(C_{A12}&#39;\right)}{C_{A11}&#39;}\]</span><span class="eqno">(7.33)</span></div>
+<div class="eq"><span class="math-display">\[F_{\min}&#39; = 1 + 2\left[\mathrm{Re}\left(C_{A12}&#39;\right) + G_{\mathrm{opt}}&#39;C_{A11}&#39;\right]\]</span><span class="eqno">(7.34)</span></div>
+<p>将式 (7.17)–(7.20) 代入式 (7.31)–(7.34)，中间网络与输出网络级联的噪声参数变为</p>
+<div class="eq"><span class="math-display">\[F_{\min}&#39; = 1 + 2\left[\mathrm{Re}\left(\frac{C_{Y22}^{I}Y_{11}^{*}}{\left|Y_{21}\right|^2} - \frac{C_{Y21}^{I}}{Y_{21}} + R_{\mathrm{c}}EF^{*}\right)\right] + G_{\mathrm{opt}}&#39;R_{\mathrm{n}}&#39;\]</span><span class="eqno">(7.35)</span></div>
+<div class="eq"><span class="math-display">\[R_{\mathrm{n}}&#39; = \frac{C_{Y22}^{I}}{\left|Y_{21}\right|^2} + R_{bx} + R_{\mathrm{e}} + R_{\mathrm{c}}\left|E\right|^2\]</span><span class="eqno">(7.36)</span></div>
+<div class="eq"><span class="math-display">\[G_{\mathrm{opt}}&#39; = \sqrt{\frac{C_{Y11}^{I} + \frac{C_{Y22}^{I}\left|Y_{11}\right|^2}{\left|Y_{21}\right|^2} - 2\mathrm{Re}\left(\frac{Y_{11}C_{Y21}^{I}}{Y_{21}}\right) + R_{\mathrm{C}}\left|F\right|^2}{R_{\mathrm{n}}&#39;} - \left|B_{\mathrm{opt}}&#39;\right|^2}\]</span><span class="eqno">(7.37)</span></div>
+<div class="eq"><span class="math-display">\[B_{\mathrm{opt}}&#39; = \frac{1}{R_{\mathrm{n}}&#39;}\mathrm{Im}\left(\frac{C_{Y22}^{I}Y_{11}^{*}}{\left|Y_{21}\right|^2} - \frac{C_{Y21}^{I}}{Y_{21}} + R_{\mathrm{c}}EF^{*}\right)\]</span><span class="eqno">(7.38)</span></div>
+<p class="step">7. 加入输入网络</p>
+<p>由于 F<sub>min</sub> 对二端口输入和输出端口处的无损变换保持不变，R<sub>n</sub>G<sub>opt</sub> 对无损变换也保持不变<sup>[6]</sup>，因此 Y<sub>opt</sub> 可按下式计算：</p>
+<div class="eq"><span class="math-display">\[Y_{\mathrm{opt}} = \frac{1}{\frac{1}{Y_{\mathrm{opt}}&#39;} - j\omega L_{\mathrm{b}}} - j\omega C_{\mathrm{pb}}\]</span><span class="eqno">(7.39)</span></div>
+<p>借助前述噪声参数沿无损网络的变换，参考平面可以方便地移动到输入端口，从而将 C<sub>pb</sub> 和 L<sub>b</sub> 包含进来：</p>
+<div class="eq"><span class="math-display">\[F_{\min} = F_{\min}&#39;\]</span><span class="eqno">(7.40)</span></div>
+<div class="eq"><span class="math-display">\[G_{\mathrm{opt}} = \frac{G_{\mathrm{opt}}&#39;}{\sqrt{1 + \omega^2 L_{\mathrm{b}}^2\left|Y_{\mathrm{opt}}&#39;\right|^2 + 2\omega B_{\mathrm{opt}}&#39;L_{\mathrm{b}}}}\]</span><span class="eqno">(7.41)</span></div>
+<div class="eq"><span class="math-display">\[B_{\mathrm{opt}} = \frac{B_{\mathrm{opt}}&#39; + \omega L_{\mathrm{b}}\left|Y_{\mathrm{opt}}&#39;\right|^2}{1 + \omega^2 L_{\mathrm{b}}^2\left|Y_{\mathrm{opt}}&#39;\right|^2 + 2\omega B_{\mathrm{opt}}&#39;L_{\mathrm{b}}} - \omega C_{\mathrm{pb}}\]</span><span class="eqno">(7.42)</span></div>
+<div class="eq"><span class="math-display">\[R_{\mathrm{n}} = \frac{R_{\mathrm{n}}&#39;G_{\mathrm{opt}}&#39;}{G_{\mathrm{opt}}}\]</span><span class="eqno">(7.43)</span></div>
+<p>在低频下，输入和输出网络的影响可以忽略，电流增益 α 接近 1，且噪声源之间的相关为零。因此，表达式 (7.40)–(7.43) 可简化为<sup>[4]</sup></p>
+<div class="eq"><span class="math-display">\[R_{\mathrm{n}} = \frac{R_{\mathrm{be}}^2 I_{\mathrm{C}}}{2V_{\mathrm{T}}} + R_{bi}\left[1 + (R_{bi} + 2R_{\mathrm{be}})\frac{I_{\mathrm{B}}}{2V_{\mathrm{T}}}\right] + R_{bx} + R_{\mathrm{e}}\]</span><span class="eqno">(7.44)</span></div>
+<div class="eq"><span class="math-display">\[B_{\mathrm{opt}} = -\omega\left(C_{\mathrm{ex}} + C_{\mathrm{bc}}\right)\]</span><span class="eqno">(7.45)</span></div>
+<div class="eq"><span class="math-display">\[G_{\mathrm{opt}} = \sqrt{\frac{I_{\mathrm{B}}}{2V_{\mathrm{T}}R_{\mathrm{n}}}}\]</span><span class="eqno">(7.46)</span></div>
+<div class="eq"><span class="math-display">\[F_{\min} = 1 + 2\left[\frac{R_{bi}I_{\mathrm{B}}}{2V_{\mathrm{T}}} + \sqrt{\frac{I_{\mathrm{B}}R_{\mathrm{n}}}{2V_{\mathrm{T}}}}\right]\]</span><span class="eqno">(7.47)</span></div>
+<p>可以看出，在低频范围内确定噪声参数时，只需要四个电阻（外部电阻 R<sub>bx</sub>、R<sub>e</sub> 和本征电阻 R<sub>bi</sub>、R<sub>be</sub>）以及两个基极—集电极电容之和 C<sub>ex</sub>+C<sub>bc</sub>。当然，这一近似不包含 1/f 噪声。</p>
+<p>为了验证所推导的四个噪声参数表达式，对 InP/InGaAs DHBT 进行了表征。器件结构和制作工艺的详情见文献 [6]。用于模型提取与验证的S参数测量采用 Agilent 8510C 矢量网络分析仪完成，频率最高达 40 GHz；直流偏置由 Agilent 4156A 提供。微波噪声参数测量采用 ATN 微波噪声测量系统（NMS）NP5，在片测量频率范围为 2–20 GHz。</p>
+<p>提取得到的与偏置无关的小信号元件值汇总于表 7.1。一旦寄生元件值已知，所有与偏置相关的元件都可以方便地计算出来。在固定集电极—发射极电压 V<sub>ce</sub>=2.0 V 下，I<sub>b</sub>=50 μA、100 μA 和 150 μA 时，5×5 μm<sup>2</sup> InP/InGaAs HBT 的本征参数 α、τ、C<sub>ex</sub>、C<sub>bc</sub>、R<sub>bi</sub>、C<sub>be</sub> 和 R<sub>be</sub> 列于表 7.2。可以观察到，在这些偏置条件下，本征电阻 R<sub>bi</sub> 和电容 C<sub>bc</sub> 几乎保持恒定。</p>
+<div class="figure"><img src="ch7_figs/Table_7.1.png" alt="表7.1 InP/InGaAs DHBT寄生参数"><div class="cap"><b>表 7.1</b>　InP/InGaAs DHBT寄生参数</div></div>
+<div class="figure"><img src="ch7_figs/Table_7.2.png" alt="表7.2 InP/InGaAs DHBT本征参数"><div class="cap"><b>表 7.2</b>　InP/InGaAs DHBT本征参数</div></div>
+<p>图 7.4a、b 和 c 比较了三种不同偏置条件下（I<sub>b</sub>=50 μA、100 μA 和 150 μA，V<sub>ce</sub>=2 V）InP HBT 在 1–40 GHz 频率范围内测量与建模的S参数。整个频率范围内两者吻合极好。三种不同偏置条件下相应的截止频率 f<sub>t</sub> 分别为 45、50 和 55 GHz。</p>
+<div class="figure"><img src="ch7_figs/Figure_7.4.png" alt="图7.4 InP HBT建模与测量S参数比较"><div class="cap"><b>图 7.4</b>　InP HBT建模与测量S参数比较。偏置条件：(a) I<sub>b</sub>=50 μA，V<sub>ce</sub>=2 V；(b) I<sub>b</sub>=100 μA，V<sub>ce</sub>=2 V；(c) I<sub>b</sub>=150 μA，V<sub>ce</sub>=2 V。方块为测量值，线条为建模值</div></div>
+<p>在图 7.5、7.6 和 7.7 中，我们比较了相同偏置条件下 InP HBT 噪声参数随频率变化的测量值与计算值，两者吻合良好。由于两种噪声机制的宽带特性，如图 7.5a、7.6a 和 7.7a 所示，F<sub>min</sub> 在很宽的频率范围内保持恒定，最小噪声系数在更高频率处适度增大。与 GaAs HBT 相比，值得注意的是，由于 InP HBT 的本征基极电阻 R<sub>bi</sub> 更高、导致热噪声更大，InP HBT 具有更高的最小噪声系数 F<sub>min</sub>、更高的噪声电阻 R<sub>n</sub> 以及更大的最佳反射系数模值 |Γ<sub>opt</sub>|。图 7.8 给出了测量与计算噪声参数随集电极—发射极电压 V<sub>ce</sub> 和基极电流 I<sub>B</sub> 变化的比较，可以观察到两者吻合极好。可以看出，F<sub>min</sub> 不随 V<sub>ce</sub> 变化，且随 I<sub>B</sub> 的减小而增大（原文如此——按图 7.8，F<sub>min</sub> 随 I<sub>B</sub> 减小而增大）；R<sub>n</sub> 随 I<sub>B</sub> 的减小而增大。</p>
+<div class="figure"><img src="ch7_figs/Figure_7.5.png" alt="图7.5 Ib=50uA时噪声参数测量与计算值随频率的比较"><div class="cap"><b>图 7.5</b>　I<sub>b</sub>=50 μA 时 InP HBT 噪声参数测量值与计算值随频率的比较</div></div>
+<div class="figure"><img src="ch7_figs/Figure_7.6.png" alt="图7.6 Ib=100uA时噪声参数测量与计算值随频率的比较"><div class="cap"><b>图 7.6</b>　I<sub>b</sub>=100 μA 时 InP HBT 噪声参数测量值与计算值随频率的比较</div></div>
+<div class="figure"><img src="ch7_figs/Figure_7.7.png" alt="图7.7 Ib=150uA时噪声参数测量与计算值随频率的比较"><div class="cap"><b>图 7.7</b>　I<sub>b</sub>=150 μA 时 InP HBT 噪声参数测量值与计算值随频率的比较</div></div>
+<div class="figure"><img src="ch7_figs/Figure_7.8.png" alt="图7.8 噪声参数随Vce和Ib变化的测量与计算比较"><div class="cap"><b>图 7.8</b>　噪声参数随集电极—发射极电压 V<sub>ce</sub> 和基极电流 I<sub>B</sub> 变化的测量与计算比较</div></div>
+</section>
+
+<section>
+<h2 id="s7-3">7.3 噪声参数提取方法</h2>
+<p>确定半导体器件噪声参数的常用方法有两大类：基于调谐器的方法<sup>[7–11]</sup>和基于 50 Ω 噪声系数测量系统的方法<sup>[12]</sup>。</p>
+<div class="figure"><img src="ch7_figs/Figure_7.9.png" alt="图7.9 噪声参数测量值与计算值比较"><div class="cap"><b>图 7.9</b>　噪声参数测量值与计算值比较。偏置条件：V<sub>ce</sub>=2 V。(a) 最小噪声系数；(b) 归一化噪声电阻；(c) 最佳源导纳的模值；(d) 最佳源导纳的相角</div></div>
+<p>在图 7.9 中，将低频范围表达式 (7.44)–(7.47) 计算得到的噪声参数与相同偏置条件下（I<sub>b</sub>=50 μA、100 μA 和 150 μA，V<sub>ce</sub>=2 V）InP HBT 的测量数据随频率的变化进行了比较，可以看到两者吻合良好。为了给 MMIC 应用设计最优的低噪声 HBT，我们研究了各电路参数对最小噪声系数的影响。结果表明，显著减小基极电阻是 InP HBT 工艺技术中最重要的因素。采用亚微米发射极条宽并结合高基极掺杂，可以实现低基极电阻和高关联增益。</p>
+<h3>7.3.1 基于调谐器的提取方法</h3>
+<p>噪声参数的确定通常通过分析测量噪声系数随源阻抗的变化来完成，至少需要四次独立测量。然而，为了提高精度，通常进行四次以上的测量，然后使用曲线拟合技术确定噪声参数。图 7.10 给出了基于调谐器的噪声参数测量系统，典型的源反射系数 Γ<sub>S</sub> 分布史密斯圆图如图 7.11 所示。</p>
+<div class="figure"><img src="ch7_figs/Figure_7.10.png" alt="图7.10 基于调谐器的噪声参数测量系统"><div class="cap"><b>图 7.10</b>　基于调谐器的噪声参数测量系统</div></div>
+<div class="figure"><img src="ch7_figs/Figure_7.11.png" alt="图7.11 典型源反射系数分布史密斯圆图"><div class="cap"><b>图 7.11</b>　典型源反射系数分布史密斯圆图</div></div>
+<p>从电路的角度看，HBT 器件可以视为一个有噪声二端口黑盒。众所周知，线性有噪声二端口网络的噪声特性可以由四个噪声参数 F<sub>min</sub>、R<sub>n</sub>、G<sub>opt</sub> 和 B<sub>opt</sub> 表征为</p>
+<div class="eq"><span class="math-display">\[F = F_{\min} + \frac{R_{\mathrm{n}}}{G_{\mathrm{s}}}\left[\left(G_{\mathrm{s}} - G_{\mathrm{opt}}\right)^2 + \left(B_{\mathrm{opt}} - B_{\mathrm{s}}\right)^2\right]\]</span><span class="eqno">(7.48)</span></div>
+<p>其中 F 为噪声系数，Y<sub>s</sub>=G<sub>s</sub>+jB<sub>s</sub> 为源导纳，F<sub>min</sub> 为最小噪声系数，R<sub>n</sub> 为噪声电阻，Y<sub>opt</sub>=G<sub>opt</sub>+jB<sub>opt</sub> 为最佳源导纳。</p>
+<p>噪声系数可以视为源导纳（Y<sub>s</sub>=G<sub>s</sub>+jB<sub>s</sub>）的非线性函数<sup>[7]</sup>：</p>
+<div class="eq"><span class="math-display">\[F = A + BG_{\mathrm{s}} + \frac{C + BB_{\mathrm{s}}^2 + DB_{\mathrm{s}}}{G_{\mathrm{s}}}\]</span><span class="eqno">(7.49)</span></div>
+<p>其中</p>
+<div class="eq"><span class="math-display">\[A = F_{\min} - 2R_{\mathrm{n}}G_{\mathrm{opt}}, \quad B = R_{\mathrm{n}}, \quad C = R_{\mathrm{n}}\left(G_{\mathrm{opt}}^2 + B_{\mathrm{opt}}^2\right), \quad D = -2R_{\mathrm{n}}B_{\mathrm{opt}}\]</span></div>
+<p>将 n 个观测噪声系数对式 (6.67) 的平面做最小二乘拟合，因此建立如下误差判据<sup>[8]</sup>：</p>
+<div class="eq"><span class="math-display">\[\varepsilon = \frac{1}{2}\sum_{i=1}^{n}\left[A + B\left(G_{\mathrm{s}i} + \frac{B_{\mathrm{s}i}^2}{G_{\mathrm{s}i}}\right) + \frac{C}{G_{\mathrm{s}i}} + \frac{DB_{\mathrm{s}i}}{G_{\mathrm{s}i}} - F_{si}\right]^2\]</span><span class="eqno">(7.50)</span></div>
+<p>其中 G<sub>si</sub> 和 B<sub>si</sub>（i=1,2,…,n）为源电导和源电纳，F<sub>i</sub> 为相应的噪声系数，W<sub>i</sub> 为加权因子——当已知某些数据不如平均数据可靠时使用。</p>
+<p>图 7.12 给出了确定噪声参数的典型实验装置，由在片探针台、最高 40 GHz 的自动网络分析仪 HP 8510C、最高 26.5 GHz 的噪声测量系统（NMS）以及最高 50 GHz 的电子宽带噪声源 HP 346C 组成。</p>
+<div class="figure"><img src="ch7_figs/Figure_7.12.png" alt="图7.12 商用噪声参数测量装置"><div class="cap"><b>图 7.12</b>　商用噪声参数测量装置</div></div>
+<h3>7.3.2 基于噪声系数测量的噪声参数确定</h3>
+<p>虽然基于调谐器的方法能得到准确结果，但耗时且需要昂贵的自动宽带微波调谐器，涉及复杂的校准过程。本节介绍一种在匹配源反射 50 Ω 测量系统（F50）基础上、无需自动调谐器确定 HBT 四个噪声参数的方法<sup>[12]</sup>。该方法基于噪声相关矩阵技术，通过拟合有源器件的测量噪声系数来确定四个噪声参数，具有以下优点：</p>
+<ol>
+<li>用七个与频率无关的噪声参数表示本征部分的四个随频率变化的噪声参数。</li>
+<li>七个与频率无关的噪声参数的初值由一组表达式计算得到，迭代计算非常快。</li>
+<li>噪声参数的精度主要取决于噪声系数测量，而不仅仅取决于小信号模型参数和直流电流。因此可以消除来自小信号模型参数的误差。</li>
+</ol>
+<p>这样的方法有利于验收测试，比使用源调谐器的完整测试更快，并且更可能在不使用调谐器的测试装置上完成。</p>
+<h4>7.3.2.1 噪声参数表达式</h4>
+<p>基于噪声相关矩阵技术，本征网络的噪声参数可以从等效电路模型推导得到。可以发现，四个噪声参数可以表示为频率的多项式函数。角频率 ω 的常数项和二次项主导 F<sub>min</sub><sup>INT</sup>、G<sub>opt</sub><sup>INT</sup> 和 R<sub>n</sub><sup>INT</sup>，而 B<sub>opt</sub><sup>INT</sup> 由线性项主导。本征网络的噪声参数可近似表示为</p>
+<div class="eq"><span class="math-display">\[F_{\min}^{\mathrm{INT}} = K_A\left(1 + K_A&#39;\omega^2\right)\]</span><span class="eqno">(7.51)</span></div>
+<div class="eq"><span class="math-display">\[G_{\mathrm{opt}}^{\mathrm{INT}} = K_B\left(1 + K_B&#39;\omega^2\right)\]</span><span class="eqno">(7.52)</span></div>
+<div class="eq"><span class="math-display">\[B_{\mathrm{opt}}^{\mathrm{INT}} = K_C\omega\]</span><span class="eqno">(7.53)</span></div>
+<div class="eq"><span class="math-display">\[R_{\mathrm{n}}^{\mathrm{INT}} = K_D\left(1 + K_D&#39;\omega^2\right)\]</span><span class="eqno">(7.54)</span></div>
+<p>其中 F<sub>min</sub><sup>INT</sup>、G<sub>opt</sub><sup>INT</sup>、B<sub>opt</sub><sup>INT</sup> 和 R<sub>n</sub><sup>INT</sup> 表示本征噪声参数；K<sub>A</sub>、K<sub>A</sub>′、K<sub>B</sub>、K<sub>B</sub>′、K<sub>C</sub>、K<sub>D</sub> 和 K<sub>D</sub>′ 为拟合因子；ω 为角频率。式 (7.51)–(7.54) 对带有寄生电阻 R<sub>bx</sub> 和 R<sub>e</sub> 的本征器件同样有效，这两个电阻只影响拟合因子。这样，四个随频率变化的噪声参数变成了七个与频率无关的常数，因此可以直接从基于 50 Ω 的测量系统获得。拟合因子的初值可估计如下：</p>
+<div class="eq"><span class="math-display">\[K_A = 1 + 2\left[\frac{R_{bi}I_{\mathrm{B}}}{2V_{\mathrm{T}}} + \sqrt{\frac{I_{\mathrm{B}}R_{\mathrm{n}}}{2V_{\mathrm{T}}}}\right]\]</span><span class="eqno">(7.55)</span></div>
+<div class="eq"><span class="math-display">\[K_B = \sqrt{\frac{I_{\mathrm{B}}}{2V_{\mathrm{T}}R_{\mathrm{n}}}}\]</span><span class="eqno">(7.56)</span></div>
+<div class="eq"><span class="math-display">\[K_C = C_{\mathrm{ex}} + C_{\mathrm{bc}}\]</span><span class="eqno">(7.57)</span></div>
+<div class="eq"><span class="math-display">\[K_D = \frac{R_{\mathrm{be}}^2 I_{\mathrm{C}}}{2V_{\mathrm{T}}} + R_{bi}\left[1 + (R_{bi} + 2R_{\mathrm{be}})\frac{I_{\mathrm{B}}}{2V_{\mathrm{T}}}\right] + R_{bx} + R_{\mathrm{e}}\]</span><span class="eqno">(7.58)</span></div>
+<div class="eq"><span class="math-display">\[K_A&#39; \approx \frac{V_{\mathrm{T}}\left(R_{\mathrm{be}}C_{\mathrm{be}}\right)^2}{I_{\mathrm{B}}R_{bi}}\left(1 + \frac{K_D}{R_{bi}}\right) + \frac{K_D&#39;}{2}\]</span><span class="eqno">(7.59)</span></div>
+<div class="eq"><span class="math-display">\[K_B&#39; \approx \frac{2V_{\mathrm{T}}\left(R_{\mathrm{be}}C_{\mathrm{be}}\right)^2}{I_{\mathrm{B}}R_{bi}}\left(1 + \frac{K_D}{R_{bi}}\right) - K_D&#39;\]</span><span class="eqno">(7.60)</span></div>
+<div class="eq"><span class="math-display">\[K_D&#39; \approx -\frac{I_{\mathrm{C}}}{K_D V_{\mathrm{T}}}R_{bi}\left(R_{bi} + 2R_{\mathrm{be}}\right)\left(\frac{1}{\omega_{\alpha}} + \tau\right)\tau\]</span><span class="eqno">(7.61)</span></div>
+<p>在低频（典型地 f&lt;3 GHz）下，F<sub>min</sub><sup>INT</sup>、G<sub>opt</sub><sup>INT</sup> 和等效噪声电阻 R<sub>n</sub><sup>INT</sup> 与频率无关，而 B<sub>opt</sub><sup>INT</sup> 与 ω 成正比<sup>[12]</sup>：</p>
+<div class="eq"><span class="math-display">\[F_{\min}^{\mathrm{INT}} = K_A\]</span><span class="eqno">(7.62)</span></div>
+<div class="eq"><span class="math-display">\[G_{\mathrm{opt}}^{\mathrm{INT}} = K_B\]</span><span class="eqno">(7.63)</span></div>
+<div class="eq"><span class="math-display">\[B_{\mathrm{opt}}^{\mathrm{INT}} = K_C\omega\]</span><span class="eqno">(7.64)</span></div>
+<div class="eq"><span class="math-display">\[R_{\mathrm{n}}^{\mathrm{INT}} = K_D\]</span><span class="eqno">(7.65)</span></div>
+<p>因此，与频率无关的噪声参数 K<sub>A</sub>、K<sub>B</sub>、K<sub>C</sub> 和 K<sub>D</sub> 可以通过基于低频噪声系数测量的数值优化方法得到；然后 K<sub>A</sub>′、K<sub>B</sub>′ 和 K<sub>D</sub>′ 可以基于更高频率的噪声系数测量确定。值得注意的是，K<sub>C</sub> 可以从两种测量中提取。</p>
+<h4>7.3.2.2 噪声参数提取流程</h4>
+<p>一旦从S参数测量中提取出小信号元件，四个未知噪声参数的提取即可按如下流程进行：</p>
+<ol>
+<li>测量 InP HBT 器件的S参数。</li>
+<li>将S参数变换为导纳参数，并减去焊盘电容（C<sub>pb</sub>、C<sub>pc</sub> 和 C<sub>pbc</sub>）。</li>
+<li>将导纳参数变换为阻抗参数，并减去串联电感（L<sub>b</sub>、L<sub>c</sub> 和 L<sub>e</sub>）和串联电阻 R<sub>c</sub>。</li>
+<li>测量由输入偏置网络、输出偏置网络和有源器件组成的系统的噪声系数（F<sub>m</sub>）。</li>
+<li>测量输入和输出偏置网络的S参数。偏置网络包括同轴开关、偏置T、探针尖及其间的电缆（见图 7.13）。由于偏置网络的两个端口类型不同——一个为同轴端口、另一个为共面端口——很难直接用矢量网络分析仪（VNA）在片测量其S参数。因此，我们采用单端口测量方法确定偏置网络的S参数。</li>
+</ol>
+<p>对二端口网络，输入反射系数可以表示为负载反射系数的函数：</p>
+<div class="eq"><span class="math-display">\[S_{\mathrm{in}} = S_{11} + \frac{S_{12}S_{21}\Gamma_L}{1 - S_{22}\Gamma_L}\]</span><span class="eqno">(7.66)</span></div>
+<p>其中 S<sub>in</sub> 为输入反射系数，Γ<sub>L</sub> 为负载反射系数。</p>
+<p>首先，在 A-A 平面（输入端口）或 B-B 平面（输出端口）进行单端口同轴开路—短路—负载校准；然后，当探针尖分别连接到阻抗标准基片（ISS）上的开路、短路和负载标准件时测量S参数，对应 Γ<sub>L</sub> 等于 1、−1 和 0。偏置网络的S参数可以直接计算如下<sup>[13]</sup>：</p>
+<div class="eq"><span class="math-display">\[S_{11} = S_{11}^{\mathrm{LOAD}}\]</span><span class="eqno">(7.67)</span></div>
+<div class="eq"><span class="math-display">\[S_{22} = \frac{S_{11}^{\mathrm{OPEN}} + S_{11}^{\mathrm{SHORT}} - 2S_{11}}{S_{11}^{\mathrm{OPEN}} - S_{11}^{\mathrm{SHORT}}}\]</span><span class="eqno">(7.68)</span></div>
+<div class="eq"><span class="math-display">\[S_{12} = S_{21} = \sqrt{\left(S_{11}^{\mathrm{OPEN}} - S_{11}\right)\left(1 - S_{22}\right)}\]</span><span class="eqno">(7.69)</span></div>
+<p>其中 S<sub>11</sub><sup>OPEN</sup>、S<sub>11</sub><sup>SHORT</sup> 和 S<sub>11</sub><sup>LOAD</sup> 分别是探针尖接开路、短路和负载标准件时测得的输入反射系数。</p>
+<div class="figure"><img src="ch7_figs/Figure_7.13.png" alt="图7.13 输入与输出网络测量框图"><div class="cap"><b>图 7.13</b>　输入与输出网络测量框图</div></div>
+<ol start="6">
+<li>计算被测器件（DUT）的噪声系数。</li>
+</ol>
+<p>众所周知，有噪声二端口级联的噪声系数由下式给出：</p>
+<div class="eq"><span class="math-display">\[F_{\mathrm{m}} = F_{\mathrm{IN}} + \frac{F_{\mathrm{D}} - 1}{G_{\mathrm{IN}}} + \frac{F_{\mathrm{OUT}} - 1}{G_{\mathrm{IN}}G_{\mathrm{D}}}\]</span><span class="eqno">(7.70)</span></div>
+<p>此时，F<sub>IN</sub> 和 G<sub>IN</sub> 为输入偏置网络的噪声系数和可用增益，F<sub>OUT</sub> 为输出偏置网络的噪声系数，F<sub>D</sub> 和 G<sub>D</sub> 为 DUT 的噪声系数和可用增益。</p>
+<p>由于输入和输出偏置网络均为无源网络，可得</p>
+<div class="eq"><span class="math-display">\[F_{\mathrm{IN}} = \frac{1}{G_{\mathrm{IN}}}, \quad F_{\mathrm{OUT}} = \frac{1}{G_{\mathrm{OUT}}}\]</span><span class="eqno">(7.71)</span></div>
+<div class="eq"><span class="math-display">\[F_{\mathrm{D}} = G_{\mathrm{IN}}F_{\mathrm{m}} - \frac{1 - G_{\mathrm{OUT}}}{G_{\mathrm{OUT}}G_{\mathrm{D}}}\]</span><span class="eqno">(7.72)</span></div>
+<ol start="7">
+<li>设置四个噪声参数 K<sub>A</sub>、K<sub>B</sub>、K<sub>C</sub> 和 K<sub>D</sub> 的初值。计算本征部分的链噪声相关矩阵 C<sub>A</sub><sup>D</sup>，由下式给出：</li>
+</ol>
+<div class="eq"><span class="math-display">\[C_A^D = 4kT\begin{bmatrix} K_D &amp; \frac{K_A - 1}{2} - K_D\left(K_B + j\omega K_C\right)^{*} \\ \frac{K_A - 1}{2} - K_D\left(K_B + j\omega K_C\right) &amp; K_D\left(K_B^2 + \omega^2 K_C^2\right) \end{bmatrix}\]</span><span class="eqno">(7.73)</span></div>
+<ol start="8">
+<li>将链噪声相关矩阵 C<sub>A</sub><sup>D</sup> 变换为阻抗噪声相关矩阵，并加入串联电感（L<sub>b</sub>、L<sub>c</sub> 和 L<sub>e</sub>）和串联电阻 R<sub>c</sub>。</li>
+<li>将阻抗噪声相关矩阵变换为导纳噪声相关矩阵，并加入焊盘电容 C<sub>pb</sub>、C<sub>pc</sub> 和 C<sub>pbc</sub>。</li>
+<li>将导纳噪声相关矩阵变换为链噪声相关矩阵，噪声系数可表示如下：</li>
+</ol>
+<div class="eq"><span class="math-display">\[F_{\mathrm{MODEL}} = 1 + 2\mathrm{Re}\left[C_{A12} + C_{A11}G_{\mathrm{opt}}\right] + \frac{C_{A11}}{G_{\mathrm{S}}}\left[\left(G_{\mathrm{S}} - G_{\mathrm{opt}}\right)^2 + \left(B_{\mathrm{S}} - B_{\mathrm{opt}}\right)^2\right]\]</span><span class="eqno">(7.74)</span></div>
+<ol start="11">
+<li>以 DUT 的噪声系数为函数计算误差判据：</li>
+</ol>
+<div class="eq"><span class="math-display">\[\varepsilon = \frac{1}{N-1}\sum_{i=0}^{N-1}\left[F_{\mathrm{MODEL}}\left(f_i\right) - F_{\mathrm{MEASURE}}\left(f_i\right)\right]^2\]</span><span class="eqno">(7.75)</span></div>
+<p>其中 N 为所考虑的频率点数，F<sub>MEASURE</sub>(f<sub>i</sub>) 为频率 f<sub>i</sub> 处的测量噪声系数，F<sub>MODEL</sub>(f<sub>i</sub>) 为由低频段提取的模型参数值计算得到的相应噪声系数。</p>
+<ol start="12">
+<li>若 ε>ε<sub>0</sub>，则使用最小二乘法更新 K<sub>A</sub>、K<sub>B</sub>、K<sub>C</sub> 和 K<sub>D</sub> 的值以减小 ε。</li>
+<li>设置三个噪声参数 K<sub>A</sub>′、K<sub>B</sub>′ 和 K<sub>D</sub>′ 的初值。在得到因子 K<sub>A</sub>、K<sub>B</sub>、K<sub>C</sub> 和 K<sub>D</sub> 之后，K<sub>A</sub>′、K<sub>B</sub>′ 和 K<sub>D</sub>′ 可以方便地从更高频率的噪声系数测量中获得。它们的初值由下式给出：</li>
+</ol>
+<div class="eq"><span class="math-display">\[K_A = \frac{F_{\min}^{c} - K_A}{K_A&#39;\omega^2}\]</span><span class="eqno">(7.76)</span></div>
+<div class="eq"><span class="math-display">\[K_B = \frac{\left(G_{\mathrm{opt}}^{c} - K_B\right)^2}{K_B&#39;\omega^2}\]</span><span class="eqno">(7.77)</span></div>
+<div class="eq"><span class="math-display">\[K_D = \frac{R_{\mathrm{n}}^{c} - K_D}{K_D&#39;\omega^2}\]</span><span class="eqno">(7.78)</span></div>
+<p>其中 F<sub>min</sub><sup>c</sup>、G<sub>opt</sub><sup>c</sup>、B<sub>opt</sub><sup>c</sup> 和 R<sub>n</sub><sup>c</sup> 表示本征噪声参数。</p>
+<ol start="14">
+<li>利用步骤 10、11 和 12 确定噪声参数 K<sub>A</sub>′、K<sub>B</sub>′ 和 K<sub>D</sub>′。</li>
+</ol>
+<h4>7.3.2.3 测量与讨论</h4>
+<p>图 7.14 给出了实验装置。直流偏置由 Agilent 4156A 提供。所有测量均使用 Cascade Microtech 的空气共面探针 ACP50-GSG-100 在片完成。在片探针采用 Line–Reflect–Match（LRM）校准方法进行S参数测量校准。每个频率点在十六个预定源阻抗下测量噪声系数和关联增益，然后应用 Lane 方法确定噪声测量结果。本文提出的噪声参数测量方法利用发射极面积 1.6×20 μm<sup>2</sup>、采用 NTU 自主研发工艺生长和制作的 InP DHBT，在片测试频率最高达 20 GHz。</p>
+<div class="figure"><img src="ch7_figs/Figure_7.14.png" alt="图7.14 基于50Ω系统的微波晶体管S参数与噪声测量装置"><div class="cap"><b>图 7.14</b>　基于 50 Ω 系统的微波晶体管S参数与噪声测量装置</div></div>
+<p>与 50 Ω 对应的源反射系数如图 7.15 所示。可以发现，由于输入网络的损耗不可忽略，源反射系数与 50 Ω 系统（Γ<sub>s</sub>=0）存在小的偏差。图 7.16 比较了偏置条件 I<sub>b</sub>=60 μA、V<sub>CE</sub>=2.0 V（I<sub>C</sub>=3.1 mA）下，1.6×20 μm<sup>2</sup> InP HBT 在 1–20 GHz 频率范围内测量与建模的噪声系数 F<sub>50</sub>。基于 50 Ω 测量系统的建模噪声系数与测量值吻合良好。</p>
+<div class="figure"><img src="ch7_figs/Figure_7.15.png" alt="图7.15 测量源反射系数随频率的变化"><div class="cap"><b>图 7.15</b>　测量源反射系数随频率的变化</div></div>
+<div class="figure"><img src="ch7_figs/Figure_7.16.png" alt="图7.16 InP HBT测量与建模噪声系数F50比较"><div class="cap"><b>图 7.16</b>　InP HBT 测量与建模噪声系数 F<sub>50</sub> 比较。偏置条件：I<sub>b</sub>=60 μA，V<sub>CE</sub>=2.0 V（I<sub>C</sub>=3.08 mA）</div></div>
+<p>与偏置无关的小信号元件提取值汇总于表 7.3。在固定集电极—发射极电压 V<sub>CE</sub>=2.0 V 下，本征参数 α、τ、C<sub>ex</sub>、C<sub>bc</sub>、R<sub>bi</sub>、C<sub>be</sub> 和 R<sub>be</sub> 列于表 7.4。可以观察到，在这些偏置条件下本征基极—集电极电容 C<sub>bc</sub> 几乎保持恒定。利用新方法由 F<sub>50</sub> 确定的晶体管噪声参数与采用基于宽带调谐器的商用 ATN 系统 NP5 测得的噪声参数进行了比较。图 7.17 给出了这些比较随频率的变化，测量与建模结果吻合良好，验证了该方法的有效性。图 7.18 中的实线显示了 InP HBT 在集电极电流 1–10 mA 范围内 12 GHz 处仿真的噪声参数，测量与仿真结果的良好一致性证明了该方法在大集电极电流范围内的质量。不同偏置条件下噪声参数相应的拟合因子汇总于表 7.5。</p>
+<div class="figure"><img src="ch7_figs/Table_7.3.png" alt="表7.3 InP/InGaAs DHBT寄生参数"><div class="cap"><b>表 7.3</b>　InP/InGaAs DHBT寄生参数（发射极面积 1.6×20 μm<sup>2</sup>）</div></div>
+<div class="figure"><img src="ch7_figs/Table_7.4.png" alt="表7.4 InP/InGaAs DHBT本征参数随偏置的变化"><div class="cap"><b>表 7.4</b>　InP/InGaAs DHBT本征参数（发射极面积 1.6×20 μm<sup>2</sup>）</div></div>
+<div class="figure"><img src="ch7_figs/Figure_7.17.png" alt="图7.17 新方法测量与计算噪声参数随频率的比较"><div class="cap"><b>图 7.17</b>　新方法测量与计算噪声参数随频率的比较。偏置条件 I<sub>b</sub>=60 μA，V<sub>CE</sub>=2.0 V（I<sub>C</sub>=3.1 mA）。(a) 最小噪声系数与噪声电阻；(b) 最佳源导纳</div></div>
+<div class="figure"><img src="ch7_figs/Table_7.5.png" alt="表7.5 不同偏置条件下噪声参数的拟合因子"><div class="cap"><b>表 7.5</b>　不同偏置条件下噪声参数的拟合因子</div></div>
+<div class="figure"><img src="ch7_figs/Figure_7.18.png" alt="图7.18 f=12GHz时噪声参数随Ic变化的测量与计算比较"><div class="cap"><b>图 7.18</b>　f=12 GHz 时噪声参数随 I<sub>c</sub> 变化的测量与计算比较。(a) 最小噪声系数；(b) 噪声电阻；(c) 最佳源导纳的模值；(d) 最佳源导纳的相角</div></div>
+</section>
+
+<section>
+<h2 id="s7-4">7.4 共基、共射与共集组态</h2>
+<p>在放大器设计中，HBT 几乎都以共射（CE）组态工作。然而，共基（CB）组态具有易于实现宽带阻抗匹配、增益性能更好等优点，更适合光通信与微波宽带通信应用；同时，共集（CC）组态作为隔离器和缓冲器在 MMIC 中得到了广泛应用。为了对微波电路进行计算机辅助设计，必须完整地表征晶体管（CE、CB 和 CC）的噪声参数和散射参数。每种组态的S参数和噪声参数可以通过测量 CE、CB 和 CC 组态的测试图形获得，但这种方法需要为晶圆上的每种器件尺寸制作两个专门的测试结构（CB 和 CC），并且必须忽略晶圆上的非均匀性。另一种方案是给出 CE、CB 和 CC HBT 之间关系的解析表达式，这对理解不同组态之间的关系非常有吸引力且有用。本节介绍一种用于微波 HBT 器件的简单而高效的变换技术<sup>[14]</sup>。该技术基于等效电路模型与传统二端口网络信号/噪声相关矩阵技术的结合。利用一组简单的公式，可以从 CE 组态的信号和噪声参数直接获得 CB 和 CC 组态的信号和噪声参数。所有这些关系式分别为 CE、CB 和 CC HBT 之间的变换提供了双向桥梁。</p>
+<div class="figure"><img src="ch7_figs/Figure_7.19.png" alt="图7.19 HBT的CE组态"><div class="cap"><b>图 7.19</b>　HBT的CE组态。(a) CE示意图；(b) 等效电路模型</div></div>
+<div class="figure"><img src="ch7_figs/Figure_7.20.png" alt="图7.20 HBT的CB组态"><div class="cap"><b>图 7.20</b>　HBT的CB组态。(a) CB示意图；(b) 等效电路模型</div></div>
+<div class="figure"><img src="ch7_figs/Figure_7.21.png" alt="图7.21 HBT的CC组态"><div class="cap"><b>图 7.21</b>　HBT的CC组态。(a) CC示意图；(b) 等效电路模型</div></div>
+<h3>7.4.1 信号参数关系</h3>
+<p>本研究中考虑的 HBT 器件的 CE、CB 和 CC 组态分别如图 7.19a、7.20a 和 7.21a 所示。图 7.19b、7.20b 和 7.21b 给出了相应的Y参数等效电路模型，其中 C<sub>pi</sub>、C<sub>po</sub> 和 C<sub>pio</sub> 表示输入、输出和反馈焊盘电容。由于三种组态的焊盘电容相同，本文的所有变换公式都不包括焊盘电容的影响。经过焊盘电容去嵌入后即可得到不含焊盘电容的测量S参数和噪声参数。</p>
+<p>比较 CE、CB 和 CC 组态的Z参数，可以得到如下Y参数关系：</p>
+<div class="eq"><span class="math-display">\[Y_{11}^{\mathrm{CB}} = Y_{11}^{\mathrm{CE}} + Y_{12}^{\mathrm{CE}} + Y_{21}^{\mathrm{CE}} + Y_{22}^{\mathrm{CE}}\]</span><span class="eqno">(7.79)</span></div>
+<div class="eq"><span class="math-display">\[Y_{12}^{\mathrm{CB}} = -\left(Y_{12}^{\mathrm{CE}} + Y_{22}^{\mathrm{CE}}\right)\]</span><span class="eqno">(7.80)</span></div>
+<div class="eq"><span class="math-display">\[Y_{21}^{\mathrm{CB}} = -\left(Y_{21}^{\mathrm{CE}} + Y_{22}^{\mathrm{CE}}\right)\]</span><span class="eqno">(7.81)</span></div>
+<div class="eq"><span class="math-display">\[Y_{22}^{\mathrm{CB}} = Y_{22}^{\mathrm{CE}}\]</span><span class="eqno">(7.82)</span></div>
+<div class="eq"><span class="math-display">\[Y_{11}^{\mathrm{CC}} = Y_{11}^{\mathrm{CE}}\]</span><span class="eqno">(7.83)</span></div>
+<div class="eq"><span class="math-display">\[Y_{12}^{\mathrm{CC}} = -\left(Y_{12}^{\mathrm{CE}} + Y_{11}^{\mathrm{CE}}\right)\]</span><span class="eqno">(7.84)</span></div>
+<div class="eq"><span class="math-display">\[Y_{21}^{\mathrm{CC}} = -\left(Y_{21}^{\mathrm{CE}} + Y_{11}^{\mathrm{CE}}\right)\]</span><span class="eqno">(7.85)</span></div>
+<div class="eq"><span class="math-display">\[Y_{22}^{\mathrm{CC}} = Y_{11}^{\mathrm{CE}} + Y_{12}^{\mathrm{CE}} + Y_{21}^{\mathrm{CE}} + Y_{22}^{\mathrm{CE}}\]</span><span class="eqno">(7.86)</span></div>
+<p>比较 CE、CB 和 CC 组态的Z参数，可以得到如表 7.6 和表 7.7 所示的Z参数关系。利用矩阵转换技术，CE、CB 和 CC 组态之间的 ABCD 参数和S参数关系也一并列于表 7.6 和表 7.7 中。</p>
+<div class="figure"><img src="ch7_figs/Table_7.6.png" alt="表7.6 CE与CB组态之间的Z、ABCD和S参数关系"><div class="cap"><b>表 7.6</b>　CE与CB组态之间的 Z、<i>ABCD</i> 和 S 参数关系</div></div>
+<div class="figure"><img src="ch7_figs/Table_7.7.png" alt="表7.7 CE与CC组态之间的Z、ABCD和S参数关系"><div class="cap"><b>表 7.7</b>　CE与CC组态之间的 Z、<i>ABCD</i> 和 S 参数关系</div></div>
+<p>为了说明Y参数变换公式的有效性，我们在图 7.22 和图 7.23 中比较了 CB 和 CC 组态在偏置 I<sub>b</sub>=50 μA、V<sub>CE</sub>=2.0 V 下最高 40 GHz 的测量S参数与预测S参数。等效电路模型的计算数据与变换公式预测的数据吻合良好。</p>
+<div class="figure"><img src="ch7_figs/Figure_7.22.png" alt="图7.22 CB组态InP HBT建模与预测S参数比较"><div class="cap"><b>图 7.22</b>　CB 组态 5×5 μm<sup>2</sup> InP HBT 建模与预测S参数比较。偏置条件：I<sub>b</sub>=50 μA，V<sub>CE</sub>=2.0 V；——等效电路模型计算数据，□□□由CE组态预测的数据</div></div>
+<div class="figure"><img src="ch7_figs/Figure_7.23.png" alt="图7.23 CC组态InP HBT建模与预测S参数比较"><div class="cap"><b>图 7.23</b>　CC 组态 InP HBT 建模与预测S参数比较。偏置条件：I<sub>b</sub>=50 μA，V<sub>CE</sub>=2.0 V；——等效电路模型计算数据，□□□由CE组态预测的数据</div></div>
+<h3>7.4.2 噪声参数关系</h3>
+<p>图 7.24 给出了 HBT 器件 CE、CB 和 CC 组态的噪声等效电路。υ<sub>CE</sub><sup>2</sup> 和 i<sub>CE</sub><sup>2</sup> 是图 7.24a 中 CE 组态无噪声 HBT 器件输入端的两个噪声源，υ<sub>CB</sub><sup>2</sup> 和 i<sub>CB</sub><sup>2</sup> 对应图 7.24b 所示的 CB 组态，υ<sub>CC</sub><sup>2</sup> 和 i<sub>CC</sub><sup>2</sup> 对应图 7.24c 所示的 CC 组态。</p>
+<div class="figure"><img src="ch7_figs/Figure_7.24.png" alt="图7.24 CE、CB和CC组态的HBT噪声等效电路模型"><div class="cap"><b>图 7.24</b>　HBT 的 (a) CE、(b) CB 和 (c) CC 组态噪声等效电路模型</div></div>
+<p>二端口噪声源的自功率谱密度和互功率谱密度用 ABCD 矩阵形式可表示为</p>
+<div class="eq"><span class="math-display">\[C_A^{Ci} = \begin{bmatrix} \overline{\upsilon_{Ci}^2} &amp; \overline{\upsilon_{Ci}i_{Ci}^{*}} \\ \overline{\upsilon_{Ci}^{*}i_{Ci}} &amp; \overline{i_{Ci}^2} \end{bmatrix} \quad i = E, B, C\]</span><span class="eqno">(7.87)</span></div>
+<p>链噪声相关矩阵更容易从噪声测量中获得，因为测量噪声参数（F<sub>min</sub> 为最小噪声系数、R<sub>n</sub> 为噪声电阻、G<sub>opt</sub> 为最佳源电导、B<sub>opt</sub> 为最佳源电纳）与它之间有直接的关系。链噪声相关矩阵可以用四个噪声参数表示为</p>
+<div class="eq"><span class="math-display">\[C_A^{Ci} = 4kT\begin{bmatrix} R_{\mathrm{n}}^{Ci} &amp; \frac{F_{\min}^{Ci} - 1}{2} - R_{\mathrm{n}}^{Ci}\left(Y_{\mathrm{opt}}^{Ci}\right)^{*} \\ \frac{F_{\min}^{Ci} - 1}{2} - R_{\mathrm{n}}^{Ci}Y_{\mathrm{opt}}^{Ci} &amp; R_{\mathrm{n}}^{Ci}\left|Y_{\mathrm{opt}}^{Ci}\right|^2 \end{bmatrix} \quad i = E, B, C\]</span><span class="eqno">(7.88)</span></div>
+<p>利用噪声源变换技术，CE、CB 和 CC 组态噪声等效电路模型中噪声源之间的关系可表示如下：</p>
+<div class="eq"><span class="math-display">\[\upsilon_{\mathrm{CB}} = \frac{\upsilon_{\mathrm{CE}}}{A^{\mathrm{CE}} - 1}\]</span><span class="eqno">(7.89)</span></div>
+<div class="eq"><span class="math-display">\[i_{CB} = \frac{C^{CE}}{A^{CE} - 1}\upsilon_{CE} - i_{CE}\]</span><span class="eqno">(7.90)</span></div>
+<div class="eq"><span class="math-display">\[\upsilon_{\mathrm{CC}} = \upsilon_{\mathrm{CE}} + \frac{B^{\mathrm{CE}}}{1 - D^{\mathrm{CE}}}i_{\mathrm{CE}}\]</span><span class="eqno">(7.91)</span></div>
+<div class="eq"><span class="math-display">\[i_{\mathrm{CC}} = \frac{i_{\mathrm{CE}}}{1 - D^{\mathrm{CE}}}\]</span><span class="eqno">(7.92)</span></div>
+<p>图 7.25 给出了从 CE 组态出发、终于 CB 组态的一系列变换；图 7.26 给出了从 CE 组态出发、终于 CC 组态的一系列变换。图 7.25a 和 7.26a 中的电压和电流噪声源可以方便地变换为噪声电压源 υ<sub>1</sub> 和 υ<sub>2</sub><sup>[15]</sup>：</p>
+<div class="eq"><span class="math-display">\[\upsilon_1 = \upsilon_{\mathrm{CE}} - i_{\mathrm{CE}}Z_{11}^{\mathrm{CE}}\]</span><span class="eqno">(7.93)</span></div>
+<div class="eq"><span class="math-display">\[\upsilon_2 = -i_{\mathrm{CE}}Z_{21}^{\mathrm{CE}}\]</span><span class="eqno">(7.94)</span></div>
+<div class="figure"><img src="ch7_figs/Figure_7.25.png" alt="图7.25 CE与CB组态之间的噪声源变换"><div class="cap"><b>图 7.25</b>　CE 与 CB 组态之间的噪声源变换</div></div>
+<div class="figure"><img src="ch7_figs/Figure_7.26.png" alt="图7.26 CE与CC组态之间的噪声源变换"><div class="cap"><b>图 7.26</b>　CE 与 CC 组态之间的噪声源变换</div></div>
+<p>CE 与 CB 之间噪声参数的关系可表示如下：</p>
+<div class="eq"><span class="math-display">\[R_{\mathrm{n}}^{\mathrm{CB}} = \frac{R_{\mathrm{n}}^{\mathrm{CE}}\left|Y_{21}^{\mathrm{CE}}\right|^2}{\left|Y_{21}^{\mathrm{CE}} + Y_{22}^{\mathrm{CE}}\right|^2}\]</span><span class="eqno">(7.95)</span></div>
+<div class="eq"><span class="math-display">\[B_{\mathrm{opt}}^{\mathrm{CB}} = \mathrm{Im}\left(\frac{\Delta Y^{\mathrm{CE}}}{Y_{21}^{\mathrm{CE}}}\right) + B_{\mathrm{opt}}^{\mathrm{CE}}\mathrm{Re}\left(\frac{Y_{22}^{\mathrm{CE}} + Y_{21}^{\mathrm{CE}}}{Y_{21}^{\mathrm{CE}}}\right) - \mathrm{Re}\left(k_3\right)\mathrm{Im}\left(\frac{Y_{22}^{\mathrm{CE}} + Y_{21}^{\mathrm{CE}}}{Y_{21}^{\mathrm{CE}}}\right)\]</span><span class="eqno">(7.96)</span></div>
+<div class="eq"><span class="math-display">\[G_{\mathrm{opt}}^{\mathrm{CB}} = \sqrt{\left|\frac{\Delta Y^{\mathrm{CE}}}{Y_{21}^{\mathrm{CE}}}\right|^2 + \left|Y_{\mathrm{opt}}^{\mathrm{CE}}\right|^2\left|\frac{Y_{22}^{\mathrm{CE}} + Y_{21}^{\mathrm{CE}}}{Y_{21}^{\mathrm{CE}}}\right|^2 - 2k_1 - \left(B_{\mathrm{opt}}^{\mathrm{CB}}\right)^2}\]</span><span class="eqno">(7.97)</span></div>
+<div class="eq"><span class="math-display">\[F_{\min}^{\mathrm{CB}} = 1 + 2\mathrm{Re}\left(G_{\mathrm{opt}}^{\mathrm{CB}}R_{\mathrm{n}}^{\mathrm{CB}} + k_2\right)\]</span><span class="eqno">(7.98)</span></div>
+<p>其中</p>
+<div class="eq"><span class="math-display">\[k_1 = \mathrm{Re}\left[\frac{\Delta Y^{\mathrm{CE}}}{Y_{21}^{\mathrm{CE}}}\left(\frac{Y_{22}^{\mathrm{CE}} + Y_{21}^{\mathrm{CE}}}{Y_{21}^{\mathrm{CE}}}\right)^{*} k_3\right]\]</span></div>
+<div class="eq"><span class="math-display">\[k_2 = -R_{\mathrm{n}}^{\mathrm{CB}}\left(\frac{\Delta Y^{\mathrm{CE}}}{Y_{21}^{\mathrm{CE}}}\right)^{*} + \frac{k_3 R_{\mathrm{n}}^{\mathrm{CE}} Y_{21}^{\mathrm{CE}}}{Y_{22}^{\mathrm{CE}} + Y_{21}^{\mathrm{CE}}}\]</span></div>
+<div class="eq"><span class="math-display">\[k_3 = \frac{F_{\min}^{\mathrm{CE}} - 1}{2R_{\mathrm{n}}^{\mathrm{CE}}} - \left(Y_{\mathrm{opt}}^{\mathrm{CE}}\right)^{*}, \quad \Delta Y^{\mathrm{CE}} = Y_{11}^{\mathrm{CE}}Y_{22}^{\mathrm{CE}} - Y_{12}^{\mathrm{CE}}Y_{21}^{\mathrm{CE}}\]</span></div>
+<p>CE 与 CC 之间噪声参数的关系可表示如下：</p>
+<div class="eq"><span class="math-display">\[R_{\mathrm{n}}^{\mathrm{CC}} = R_{\mathrm{n}}^{\mathrm{CE}}\left[1 + \left|\frac{1}{Y_{11}^{\mathrm{CE}} + Y_{21}^{\mathrm{CE}}}\right|^2\left|Y_{\mathrm{opt}}^{\mathrm{CS}}\right|^2\right] + 2k_4\]</span><span class="eqno">(7.99)</span></div>
+<div class="eq"><span class="math-display">\[B_{\mathrm{opt}}^{\mathrm{CC}} = \frac{\mathrm{Im}\left[k_3R_{\mathrm{n}}^{\mathrm{CE}}\left(\frac{Y_{21}^{\mathrm{CE}}}{Y_{11}^{\mathrm{CE}} + Y_{21}^{\mathrm{CE}}}\right)^{*}\right]}{R_{\mathrm{n}}^{\mathrm{CC}}} - \frac{R_{\mathrm{n}}^{\mathrm{CE}}\left|Y_{\mathrm{opt}}^{\mathrm{CE}}\right|^2\mathrm{Im}\left(\frac{1}{Y_{21}^{\mathrm{CE}}}\right)\left|Y_{21}^{\mathrm{CE}}\right|^2}{R_{\mathrm{n}}^{\mathrm{CC}}\left|Y_{11}^{\mathrm{CE}} + Y_{21}^{\mathrm{CE}}\right|^2}\]</span><span class="eqno">(7.100)</span></div>
+<div class="eq"><span class="math-display">\[G_{\mathrm{opt}}^{\mathrm{CC}} = \sqrt{\frac{R_{\mathrm{n}}^{\mathrm{CE}}\left|Y_{\mathrm{opt}}^{\mathrm{CE}}\right|^2\left|Y_{21}^{\mathrm{CE}}\right|^2}{R_{\mathrm{n}}^{\mathrm{CC}}\left|Y_{21}^{\mathrm{CE}} + Y_{11}^{\mathrm{CE}}\right|^2} - \left(B_{\mathrm{opt}}^{\mathrm{CC}}\right)^2}\]</span><span class="eqno">(7.101)</span></div>
+<div class="eq"><span class="math-display">\[F_{\min}^{\mathrm{CC}} = 1 + 2\mathrm{Re}\left(G_{\mathrm{opt}}^{\mathrm{CC}}R_{\mathrm{n}}^{\mathrm{CC}} + k_5\right)\]</span><span class="eqno">(7.102)</span></div>
+<p>其中</p>
+<div class="eq"><span class="math-display">\[k_4 = -\mathrm{Re}\left[\left(\frac{1}{Y_{11}^{\mathrm{CE}} + Y_{21}^{\mathrm{CE}}}\right)^{*} k_3 R_{\mathrm{n}}^{\mathrm{CE}}\right]\]</span></div>
+<div class="eq"><span class="math-display">\[k_5 = \frac{k_3 R_{\mathrm{n}}^{\mathrm{CE}}}{\left(\frac{Y_{11}^{\mathrm{CE}} + Y_{21}^{\mathrm{CE}}}{Y_{21}^{\mathrm{CE}}}\right)^{*}} - \frac{\left|Y_{\mathrm{opt}}^{\mathrm{CE}}\right|^2\left(Y_{21}^{\mathrm{CE}}\right)^{*} R_{\mathrm{n}}^{\mathrm{CE}}}{\left|Y_{21}^{\mathrm{CE}} + Y_{11}^{\mathrm{CE}}\right|^2}\]</span></div>
+<p>在 ω C<sub>gs</sub>R<sub>i</sub>≪1 的条件下（对 f&lt;6 GHz 有效），通过忽略寄生元件的影响，本征 HBT 器件 CE、CB 和 CC 组态之间的噪声参数关系可以简化为</p>
+<div class="eq"><span class="math-display">\[R_{\mathrm{n}}^{\mathrm{CB}} \approx R_{\mathrm{n}}^{\mathrm{CE}}\left(1 + \frac{\omega^2 R_{bi}C_{\mathrm{ex}}}{\omega_{\alpha}}\right)^2\]</span><span class="eqno">(7.103)</span></div>
+<div class="eq"><span class="math-display">\[F_{\min}^{\mathrm{CB}} \approx F_{\min}^{\mathrm{CE}}\]</span><span class="eqno">(7.104)</span></div>
+<div class="eq"><span class="math-display">\[B_{\mathrm{opt}}^{\mathrm{CB}} \approx -\frac{\omega^2 R_{bi}C_{\mathrm{ex}}/\omega_{\alpha}}{1 + \omega^2 R_{bi}C_{\mathrm{ex}}/\omega_{\alpha}}B_{\mathrm{opt}}^{\mathrm{CE}}\]</span><span class="eqno">(7.105)</span></div>
+<div class="eq"><span class="math-display">\[G_{\mathrm{opt}}^{\mathrm{CB}} \approx G_{\mathrm{opt}}^{\mathrm{CC}} \approx G_{\mathrm{opt}}^{\mathrm{CE}}\]</span><span class="eqno">(7.106)</span></div>
+<div class="eq"><span class="math-display">\[R_{\mathrm{n}}^{\mathrm{CC}} \approx R_{\mathrm{n}}^{\mathrm{CE}}\left(1 + R_{\mathrm{be}}^2\left|Y_{\mathrm{opt}}^{\mathrm{CE}}\right|\right)^2 - 2R_{\mathrm{be}}\left(\frac{F_{\min}^{\mathrm{CE}} - 1}{2} - G_{\mathrm{opt}}^{\mathrm{CE}}R_{\mathrm{n}}^{\mathrm{CE}}\right)\]</span><span class="eqno">(7.107)</span></div>
+<div class="eq"><span class="math-display">\[B_{\mathrm{opt}}^{\mathrm{CC}} \approx B_{\mathrm{opt}}^{\mathrm{CE}}\]</span><span class="eqno">(7.108)</span></div>
+<div class="eq"><span class="math-display">\[F_{\min}^{\mathrm{CC}} \approx F_{\min}^{\mathrm{CE}} - 2B_{\mathrm{opt}}^{\mathrm{CE}}R_{\mathrm{n}}^{\mathrm{CE}}\omega\left(\tau + \frac{1}{\omega_{\alpha}}\right)\]</span><span class="eqno">(7.109)</span></div>
+<p>为了说明噪声参数变换公式的有效性，我们在图 7.27 和图 7.28 中比较了 InP HBT 在 CB 和 CC 组态下的预测结果与建模结果。CB 和 CC 组态的预测数据由 CE 组态的测量数据得到，测量数据与预测数据之间吻合良好，验证了所提出的噪声参数处理方法。</p>
+<div class="figure"><img src="ch7_figs/Figure_7.27.png" alt="图7.27 CB组态InP HBT建模与预测噪声参数比较"><div class="cap"><b>图 7.27</b>　CB 组态 5×5 μm<sup>2</sup> InP HBT 建模与预测噪声参数比较。偏置条件：I<sub>b</sub>=50 μA，V<sub>CE</sub>=2.0 V；——等效电路模型计算数据，□□□由CE组态噪声测量预测的数据</div></div>
+<div class="figure"><img src="ch7_figs/Figure_7.28.png" alt="图7.28 CC组态InP HBT建模与预测噪声参数比较"><div class="cap"><b>图 7.28</b>　CC 组态 5×5 μm<sup>2</sup> InP HBT 建模与预测噪声参数比较。偏置条件：I<sub>b</sub>=50 μA，V<sub>CE</sub>=2.0 V；——等效电路模型计算数据，□□□由CE组态噪声测量预测的数据</div></div>
+<p>在图 7.29 和图 7.30 中，将低频段计算的噪声参数与相同偏置条件下本征 InP HBT 器件的预测数据随频率的变化进行了比较。CB 和 CC 组态的测量数据与预测数据吻合良好，验证了所提出的噪声参数处理方法。</p>
+<div class="figure"><img src="ch7_figs/Figure_7.29.png" alt="图7.29 低频段CB组态InP HBT建模与预测噪声参数比较"><div class="cap"><b>图 7.29</b>　低频段 CB 组态 5×5 μm<sup>2</sup> InP HBT 建模与预测噪声参数比较。偏置条件：I<sub>b</sub>=50 μA，V<sub>CE</sub>=2.0 V</div></div>
+<div class="figure"><img src="ch7_figs/Figure_7.30.png" alt="图7.30 低频段CC组态InP HBT建模与预测噪声参数比较"><div class="cap"><b>图 7.30</b>　低频段 CC 组态 5×5 μm<sup>2</sup> InP HBT 建模与预测噪声参数比较。偏置条件：I<sub>b</sub>=50 μA，V<sub>CE</sub>=2.0 V</div></div>
+</section>
+<section>
+<h2 id="s7-5">7.5 小结</h2>
+<p>本章介绍了基于 III–V 族化合物的 HBT 器件的噪声建模与参数提取方法，同时介绍了噪声参数的确定方法，包括基于调谐器的方法和基于噪声系数测量的方法。</p>
+<h2 id="s7-6">参考文献</h2>
+<ol class="refs">
+<li>Gao, J. (2010) <i>RF and Microwave Modeling and Measurement Techniques for Field Effect Transistors</i>, SciTech Publishing, Inc., Raleigh.</li>
+<li>Gao, J. (2010) <i>Optoelectronic Integrated Circuit Design and Device Modeling</i>, John Wiley &amp; Sons Pte Ltd, Singapore.</li>
+<li>Rudolph, M., Doerner, R., Klapproth, L. and Heymann, P. (1999) An HBT noise model valid up to transit frequency. <i>IEEE Electron Device Letters</i>, 20(1), 24–26.</li>
+<li>Gao, J., Li, X., Wang, H. and Boeck, G. (2004) Microwave noise modeling for InP/InGaAs HBTs. <i>IEEE Transactions on Microwave Theory Technique</i>, 52(4), 1264–1272.</li>
+<li>Hillbrand, H. and Russer, P. (1976) An efficient method for computer-aided noise analysis of linear amplifier networks. <i>IEEE Transaction on Circuits System</i>, CAS-23, 235–238.</li>
+<li>Wang, H., Ng Ing, G., Zheng, H. et al. (2000) Demonstration of aluminum free metamorphic InP/In<sub>0.53</sub>Ga<sub>0.47</sub>As/InP double heterojunction bipolar transistors on GaAs substrates. <i>IEEE Electron Device Letters</i>, 21(9), 379–381.</li>
+<li>Lane, R.Q. (1969) The determination of noise parameters. <i>Proceeding of IEEE</i>, 57(8), 1461–1462.</li>
+<li>Escotte, L., Plana, R. and Graffeuil, J. (1993) Evaluation of noise parameter extraction methods. <i>IEEE Transactions on Microwave Theory and Techniques</i>, 41(3), 382–387.</li>
+<li>Caruso, G. and Sannino, M. (1978) Computer-aided determination of microwave two-port noise parameters. <i>IEEE Transactions on Microwave Theory and Techniques</i>, MTT-26, 639–642.</li>
+<li>Davidson, A.C., Leake, B.W. and Strid, E. (1989) Accuracy improvements in microwave noise-parameter measurements. <i>IEEE Transactions on Microwave Theory and Techniques</i>, MTT-37, 1973–1978.</li>
+<li>O’Callaghan, J.M. and Mondal, J.P. (1989) A vector approach for noise parameter fitting and selection of source admittance. <i>IEEE Transactions on Microwave Theory and Techniques</i>, MTT-37, 1376–1382.</li>
+<li>Gao, J., Li, X., Jia, J. et al. (2005) Direct extraction of InP HBT noise parameters based on noise-figure measurement system. <i>IEEE Transactions on Microwave Theory and Techniques</i>, 53(1), 330–335.</li>
+<li>Gao, J., Law, C.L., Wang, H. et al. (2003) A new method for PHEMT noise parameter determination based on 50-Ω noise measurement system. <i>IEEE Transactions on Microwave Theory Techniques</i>, 51(10), 2079–2089.</li>
+<li>Li, X., Gao, J. and Boeck, G. (2009) Relationships between common emitter, common base and common collector HBTs. <i>Microwave Journal</i>, 52(2), 66–78.</li>
+<li>Hagen, J.B. (1990) Noise parameter transformations for three-terminal amplifiers. <i>IEEE Transactions on Microwave Theory and Techniques</i>, 38, 319–321.</li>
+</ol>
+</section>
+</div>
+</body>
+</html>

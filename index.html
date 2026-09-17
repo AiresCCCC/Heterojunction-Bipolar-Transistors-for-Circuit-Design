@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>目录 — Heterojunction Bipolar Transistors for Circuit Design（中文翻译）</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #5a6470;
+    --accent: #2a4d8f;
+    --rule: #d8dce2;
+    --bg: #ffffff;
+    --soft: #f7f8fa;
+    --serif: "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", "STSong", "SimSun",
+             Georgia, "Times New Roman", serif;
+    --sans: "Source Han Sans SC", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei",
+            "Heiti SC", Helvetica, Arial, sans-serif;
+  }
+  html, body { background: var(--bg); color: var(--ink); }
+  body {
+    font-family: var(--serif);
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 46px 22px 64px;
+    line-height: 1.7;
+  }
+  header { border-bottom: 1px solid var(--rule); padding-bottom: 22px; margin-bottom: 28px; }
+  .kicker {
+    font-family: var(--sans);
+    font-size: 0.78em;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  h1 {
+    font-family: var(--serif);
+    font-size: 1.72em;
+    line-height: 1.35;
+    margin: 12px 0 8px;
+    font-weight: 600;
+  }
+  .sub { font-family: var(--sans); font-size: 0.9em; color: var(--muted); margin: 0; }
+  .stats {
+    font-family: var(--sans);
+    font-size: 0.82em;
+    color: var(--muted);
+    margin-top: 12px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(228px, 1fr));
+    gap: 12px;
+  }
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 16px;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    background: var(--bg);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color .15s, background .15s, transform .15s;
+  }
+  .card:hover {
+    border-color: var(--accent);
+    background: var(--soft);
+    transform: translateY(-1px);
+  }
+  .num {
+    font-family: var(--sans);
+    font-size: 0.74em;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+  }
+  .ttl { font-family: var(--serif); font-size: 1.02em; font-weight: 600; line-height: 1.45; }
+  .meta { font-family: var(--sans); font-size: 0.76em; color: var(--muted); margin-top: 2px; }
+
+  .toc-detail { margin-top: 38px; }
+  .toc-detail > h2 {
+    font-family: var(--sans);
+    font-size: 0.92em;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 8px;
+    margin: 0 0 18px;
+  }
+  .toc-ch {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .toc-ch:last-child { border-bottom: none; }
+  .ch-head {
+    font-family: var(--serif);
+    font-size: 1.08em;
+    font-weight: 600;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .ch-head b { font-family: var(--sans); color: var(--accent); font-weight: 600; }
+  .ch-head:hover { color: var(--accent); text-decoration: underline; }
+  .toc-sub {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2px 22px;
+    margin: 8px 0 0 18px;
+  }
+  .toc-sub a {
+    font-family: var(--serif);
+    font-size: 0.9em;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 2px 0;
+  }
+  .toc-sub a:hover { color: var(--accent); text-decoration: underline; }
+  footer {
+    margin-top: 34px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+    font-family: var(--sans);
+    font-size: 0.78em;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="kicker">Heterojunction Bipolar Transistors for Circuit Design: Microwave Modeling and Parameter Extraction</div>
+    <h1>异质结双极晶体管电路设计<br>—— 微波建模与参数提取 · 全书中文翻译 · 目录</h1>
+    <p class="sub">Jianjun Gao（高建军）　著　|　全 8 章，点击卡片或下方条目跳转阅读</p>
+    <div class="stats">共 264 张插图 · 630 条公式 · 中文正文约 52,168 字 · 二级标题 49 条</div>
+  </header>
+
+  <main class="grid">
+      <a class="card" href="ch1_cn.html">
+        <span class="num">第 1 章</span>
+        <span class="ttl">引言</span>
+        <span class="meta">插图 6 张 · 约 3.0 千字</span>
+      </a>
+      <a class="card" href="ch2_cn.html">
+        <span class="num">第 2 章</span>
+        <span class="ttl">微波器件建模的基本概念</span>
+        <span class="meta">插图 39 张 · 约 8.0 千字 · 公式 167 条</span>
+      </a>
+      <a class="card" href="ch3_cn.html">
+        <span class="num">第 3 章</span>
+        <span class="ttl">双极结型晶体管的建模与参数提取方法</span>
+        <span class="meta">插图 51 张 · 约 9.9 千字 · 公式 110 条</span>
+      </a>
+      <a class="card" href="ch4_cn.html">
+        <span class="num">第 4 章</span>
+        <span class="ttl">HBT的基本原理</span>
+        <span class="meta">插图 22 张 · 约 6.4 千字 · 公式 8 条</span>
+      </a>
+      <a class="card" href="ch5_cn.html">
+        <span class="num">第 5 章</span>
+        <span class="ttl">HBT小信号建模与参数提取</span>
+        <span class="meta">插图 63 张 · 约 8.7 千字 · 公式 121 条</span>
+      </a>
+      <a class="card" href="ch6_cn.html">
+        <span class="num">第 6 章</span>
+        <span class="ttl">HBT大信号等效电路建模</span>
+        <span class="meta">插图 36 张 · 约 7.5 千字 · 公式 101 条</span>
+      </a>
+      <a class="card" href="ch7_cn.html">
+        <span class="num">第 7 章</span>
+        <span class="ttl">HBT微波噪声建模与参数提取技术</span>
+        <span class="meta">插图 37 张 · 约 6.3 千字 · 公式 109 条</span>
+      </a>
+      <a class="card" href="ch8_cn.html">
+        <span class="num">第 8 章</span>
+        <span class="ttl">SiGe HBT建模与参数提取</span>
+        <span class="meta">插图 10 张 · 约 2.4 千字 · 公式 14 条</span>
+      </a>
+  </main>
+
+  <section class="toc-detail">
+    <h2>章节目录（含二级标题）</h2>
+      <div class="toc-ch">
+        <a class="ch-head" href="ch1_cn.html"><b>第 1 章</b> 引言</a>
+        <div class="toc-sub">
+          <a href="ch1_cn.html#s1-1">1.1 异质结双极晶体管概述</a>
+          <a href="ch1_cn.html#s1-2">1.2 HBT的建模与测量</a>
+          <a href="ch1_cn.html#s1-3">1.3 本书结构</a>
+          <a href="ch1_cn.html#s1-ref">参考文献</a>
+        </div>
+      </div>
+      <div class="toc-ch">
+        <a class="ch-head" href="ch2_cn.html"><b>第 2 章</b> 微波器件建模的基本概念</a>
+        <div class="toc-sub">
+          <a href="ch2_cn.html#s2-1">2.1 信号参数</a>
+          <a href="ch2_cn.html#s2-2">2.2 噪声二端口网络的表示</a>
+          <a href="ch2_cn.html#s2-3">2.3 基本电路元件</a>
+          <a href="ch2_cn.html#s2-4">2.4 π 型与 T 型网络</a>
+          <a href="ch2_cn.html#s2-5">2.5 去嵌入方法</a>
+          <a href="ch2_cn.html#s2-6">2.6 参数提取的基本方法</a>
+          <a href="ch2_cn.html#s2-7">2.7 小结</a>
+          <a href="ch2_cn.html#s2-ref">参考文献</a>
+        </div>
+      </div>
+      <div class="toc-ch">
+        <a class="ch-head" href="ch3_cn.html"><b>第 3 章</b> 双极结型晶体管的建模与参数提取方法</a>
+        <div class="toc-sub">
+          <a href="ch3_cn.html#s3-1">3.1 PN 结</a>
+          <a href="ch3_cn.html#s3-2">3.2 PN 结二极管</a>
+          <a href="ch3_cn.html#s3-3">3.3 BJT 的物理工作原理</a>
+          <a href="ch3_cn.html#s3-4">3.4 等效电路模型</a>
+          <a href="ch3_cn.html#s3-1">3.5 微波性能</a>
+          <a href="ch3_cn.html#s3-2">3.6 小结</a>
+          <a href="ch3_cn.html#s3-3">参考文献</a>
+        </div>
+      </div>
+      <div class="toc-ch">
+        <a class="ch-head" href="ch4_cn.html"><b>第 4 章</b> HBT的基本原理</a>
+        <div class="toc-sub">
+          <a href="ch4_cn.html#s4-1">4.1 半导体异质结</a>
+          <a href="ch4_cn.html#s4-2">4.2 HBT 器件</a>
+          <a href="ch4_cn.html#s4-3">4.3 小结</a>
+          <a href="ch4_cn.html#s4-4">参考文献</a>
+        </div>
+      </div>
+      <div class="toc-ch">
+        <a class="ch-head" href="ch5_cn.html"><b>第 5 章</b> HBT小信号建模与参数提取</a>
+        <div class="toc-sub">
+          <a href="ch5_cn.html#s5-1">5.1 小信号电路模型</a>
+          <a href="ch5_cn.html#s5-2">5.2 HBT 器件结构</a>
+          <a href="ch5_cn.html#s5-3">5.3 PAD 电容的提取方法</a>
+          <a href="ch5_cn.html#s5-4">5.4 外部电感的提取方法</a>
+          <a href="ch5_cn.html#s5-5">5.5 外部电阻的提取方法</a>
+          <a href="ch5_cn.html#s5-6">5.6 本征电阻的提取方法</a>
+          <a href="ch5_cn.html#s5-7">5.7 半解析法</a>
+          <a href="ch5_cn.html#s5-8">5.8 小结</a>
+          <a href="ch5_cn.html#s5-3">参考文献</a>
+        </div>
+      </div>
+      <div class="toc-ch">
+        <a class="ch-head" href="ch6_cn.html"><b>第 6 章</b> HBT大信号等效电路建模</a>
+        <div class="toc-sub">
+          <a href="ch6_cn.html#s6-1">6.1 线性与非线性</a>
+          <a href="ch6_cn.html#s6-2">6.2 大信号与小信号</a>
+          <a href="ch6_cn.html#s6-3">6.3 热阻</a>
+          <a href="ch6_cn.html#s6-4">6.4 非线性 HBT 建模</a>
+          <a href="ch6_cn.html#s6-5">6.5 小结</a>
+          <a href="ch6_cn.html#s6-6">参考文献</a>
+        </div>
+      </div>
+      <div class="toc-ch">
+        <a class="ch-head" href="ch7_cn.html"><b>第 7 章</b> HBT微波噪声建模与参数提取技术</a>
+        <div class="toc-sub">
+          <a href="ch7_cn.html#s7-1">7.1 噪声等效电路模型</a>
+          <a href="ch7_cn.html#s7-2">7.2 噪声参数推导</a>
+          <a href="ch7_cn.html#s7-3">7.3 噪声参数提取方法</a>
+          <a href="ch7_cn.html#s7-4">7.4 共基、共射与共集组态</a>
+          <a href="ch7_cn.html#s7-5">7.5 小结</a>
+          <a href="ch7_cn.html#s7-6">参考文献</a>
+        </div>
+      </div>
+      <div class="toc-ch">
+        <a class="ch-head" href="ch8_cn.html"><b>第 8 章</b> SiGe HBT建模与参数提取</a>
+        <div class="toc-sub">
+          <a href="ch8_cn.html#s8-1">8.1 引言</a>
+          <a href="ch8_cn.html#s8-2">8.2 小信号模型</a>
+          <a href="ch8_cn.html#s8-3">8.3 大信号模型</a>
+          <a href="ch8_cn.html#s8-4">8.4 小结</a>
+          <a href="ch8_cn.html#s8-ref">参考文献</a>
+        </div>
+      </div>
+  </section>
+
+  <footer>中文翻译稿 · 章节页与离线单文件版（HBT_chN_单文件.html）位于同一目录</footer>
+</body>
+</html>

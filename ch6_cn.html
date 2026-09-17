@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: true
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+  },
+  chtml: {
+    scale: 1
+  },
+  startup: {
+    pageReady: () => MathJax.startup.defaultPageReady().then(() => {
+      const updateFormulaOverflow = () => {
+        document.querySelectorAll('.math-display').forEach((formula) => {
+          const math = formula.querySelector('mjx-math') || formula.querySelector('mjx-container');
+          const mathWidth = math ? math.getBoundingClientRect().width : 0;
+          formula.classList.toggle('math-overflow', mathWidth > formula.clientWidth + 4);
+        });
+      };
+      updateFormulaOverflow();
+      if (window.ResizeObserver) {
+        const observer = new ResizeObserver(updateFormulaOverflow);
+        document.querySelectorAll('.math-display').forEach((formula) => observer.observe(formula));
+      }
+    })
+  }
+};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第6章 HBT 大信号等效电路建模 — HBT 中文译本</title>
+<style>
+/* ===== HBT 中文译本 · 统一标准样式 ===== */
+  :root {
+    --ink: #1a1a1a; --muted: #5a6470; --accent: #2a4d8f; --rule: #d8dce2;
+    --bg: #ffffff; --soft: #f7f8fa;
+    --serif: "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", "STSong", "SimSun", Georgia, "Times New Roman", serif;
+    --sans: "Source Han Sans SC", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", "Heiti SC", Helvetica, Arial, sans-serif;
+    --mono: "Cambria Math", "STIX Two Math", "Latin Modern Math", "Times New Roman", serif;
+  }
+  html, body { background: var(--bg); color: var(--ink); }
+  body { font-family: var(--serif); max-width: 880px; margin: 0 auto;
+         padding: 46px 26px 64px; line-height: 1.78; }
+  header { border-bottom: 1px solid var(--rule); padding-bottom: 18px; margin-bottom: 30px; }
+  .kicker { font-family: var(--sans); font-size: 0.78em; letter-spacing: 0.14em;
+            text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: var(--serif); font-size: 1.7em; line-height: 1.4;
+       margin: 12px 0 6px; font-weight: 600; }
+  .ch-num { font-family: var(--sans); color: var(--accent); font-size: 0.85em;
+            letter-spacing: 0.08em; }
+  .credit { font-family: var(--sans); font-size: 0.78em; color: var(--muted);
+            margin-top: 18px; line-height: 1.55; }
+  h2 { font-family: var(--serif); font-size: 1.32em; margin: 36px 0 14px;
+       border-bottom: 1px solid var(--rule); padding-bottom: 6px; font-weight: 600; }
+  h3 { font-family: var(--serif); font-size: 1.12em; margin: 26px 0 10px; font-weight: 600; }
+  h4 { font-family: var(--serif); font-size: 1.0em; margin: 22px 0 8px;
+       font-weight: 600; color: #222; }
+  p { margin: 0 0 12px; text-align: justify; }
+  ul { margin: 6px 0 14px; padding-left: 22px; }
+  ol { margin: 6px 0 14px; padding-left: 24px; }
+  li { margin: 2px 0; }
+  .figure { margin: 22px auto; text-align: center; }
+  .figure img { max-width: 100%; height: auto; border: 1px solid var(--rule);
+                border-radius: 2px; background: #fff; }
+  .figure .cap { font-family: var(--sans); font-size: 0.86em; color: var(--muted);
+                 margin-top: 8px; line-height: 1.5; }
+  .eq { position: relative; display: flex; align-items: center;
+        justify-content: center; margin: 10px 0; }
+  /* 公式编号：绝对定位贴正文右边界，垂直居中 */
+  .eq .eqno { position: absolute; right: 0; top: 50%;
+              transform: translateY(-50%); z-index: 2;
+              padding-left: .5em; background: var(--bg);
+              font-family: var(--sans);
+              font-size: 0.88em; color: var(--muted); white-space: nowrap; }
+  /* 公式本体留出编号通道，避免宽公式与右对齐编号重叠 */
+  .eq .math-display { display: block; flex: 0 1 auto; width: max-content; min-width: 0;
+                       max-width: calc(100% - 7.5em); overflow-x: hidden; overflow-y: hidden;
+                       padding: 2px 0; box-sizing: border-box; }
+  .eq .eqtag { font-family: var(--sans); font-size: 0.88em;
+               color: var(--muted); margin-left: 10px; white-space: nowrap; }
+  .eqdef { display: flex; align-items: center; gap: 18px; margin: 6px 0 12px; }
+  .eqdef .math-display { flex: 0 1 auto; width: max-content; max-width: 46%;
+                         overflow-x: hidden; overflow-y: hidden; padding: 2px 0;
+                         box-sizing: border-box; }
+  .math-display.math-overflow { overflow-x: auto; }
+  .eqdef .meaning { flex: 1; font-size: 0.95em; line-height: 1.4; color: #222; }
+  .src { font-family: var(--sans); font-size: 0.76em; color: var(--muted);
+         margin-top: 4px; }
+  ol.refs { font-family: var(--sans); font-size: 0.85em; line-height: 1.6;
+            color: #333; padding-left: 26px; }
+  ol.refs li { margin: 4px 0; }
+  @media (max-width: 700px) {
+    body { padding: 24px 16px 40px; }
+    .eq .eqno { position: static; transform: none; margin-left: 8px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">HBT for Circuit Design · 中文翻译节选</div>
+  <h1><span class="ch-num">第 6 章</span><br>HBT 大信号等效电路建模</h1>
+  <p class="credit">
+    译自 <i>Heterojunction Bipolar Transistors for Circuit Design: Microwave Modeling
+    and Parameter Extraction</i>, First Edition. Jianjun Gao.<br>
+    &copy; 2015 Higher Education Press. All rights reserved. Published 2015 by John Wiley &amp; Sons Singapore Pte Ltd.<br>
+    本译文仅用于学术研究目的，版权归原作者及出版方所有。
+  </p>
+</header>
+
+<p>众所周知，有源电路的非线性仿真是设计混频器、谐波发生器、衰减器、振荡器和功率放大器时的一项重要工具。要获得高效的设计环境，必须拥有带精确器件大信号模型的设计工具。众所周知，对于模拟和射频应用，电路仿真的精度在很大程度上取决于器件的大信号模型。精确的器件模型对于正确预测电路性能至关重要。小信号模型的一大优点是可直接求解，而大信号非线性模型通常只能迭代求解，可能存在收敛性或稳定性问题。简化为线性模型后，求解线性方程的全套工具便可以派上用场。虽然小信号模型能为测试结构版图的优化提供重要信息，但小信号等效电路模型存在以下缺点：</p>
+<ol>
+<li><b>与偏置无关。</b>小信号等效电路模型只表示恒定偏置条件下的网络参数（如 S 参数），这意味着一旦偏置条件改变，小信号等效电路模型的参数也会随之改变。</li>
+<li><b>与输入功率电平无关。</b>只要信号相对于器件的非线性而言足够小，各导数便不会有明显变化，可以按标准线性电路元件处理。但当输入功率电平达到甚至超过 1 dB 压缩点时，晶体管的非线性变得显著，实测 S 参数将依赖于输入功率电平。</li>
+<li><b>缺乏直流特性。</b>小信号等效电路模型无法用来预测直流电压—电流关系。遗憾的是，最佳工作点的调整对电路设计师而言十分重要。</li>
+</ol>
+<p>图 6.1 给出了小信号模型与大信号模型的比较。可以看出，小信号模型是在相应大信号模型线性化的基础上得到的，因此小信号模型也称为线性模型，大信号模型也称为非线性模型。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.1.png" alt="小信号模型与大信号模型比较">
+  <div class="cap"><b>图 6.1</b> 小信号模型与大信号模型的比较</div>
+</div>
+
+<p>使用描述晶体管整个工作区特性的非线性模型，是数字电路设计、功率放大器和混频器等工作在大信号状态的电路，以及任何电路的大信号仿真（例如稳定性或失真分析）所需要的。本章将介绍 HBT 常用的非线性模型，重点讨论基于经验等效电路的模型，它由漏极电流（集电极电流）直流模型和非线性本征电容模型组成，同时介绍 HBT 热阻的确定方法。</p>
+
+<h2 id="s6-1">6.1 线性与非线性</h2>
+<p>本章会频繁出现"线性"与"非线性"。我们必须非常清楚两者之间的区别。</p>
+
+<h3>6.1.1 定义</h3>
+<p>对于理想线性网络，输出功率对输入功率的曲线是一条斜率为 1 的直线。当输出功率随输入功率线性增大时，称晶体管是线性的。随着输入功率增大，晶体管的传输函数变为非线性，此时输出功率不再随输入功率线性增大。衡量晶体管非线性行为的方法有很多种，最简单的是测量 1 dB 增益压缩点，即 <i>P</i><sub>out</sub>–<i>P</i><sub>in</sub> 曲线上（如图 6.2 所示）由于非线性的影响、功率增益（<i>P</i><sub>out</sub> 与 <i>P</i><sub>in</sub> 之比）比其小信号线性增益下降 1 dB 的那一点。当输入功率电平低于 1 dB 增益压缩点 <i>P</i><sub>1dB</sub> 时，晶体管表现为线性，因此小信号 S 参数不应依赖于输入功率电平。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.2.png" alt="1 dB 增益压缩点定义">
+  <div class="cap"><b>图 6.2</b> 1 dB 增益压缩点的定义</div>
+</div>
+
+<p>晶体管非线性的另一项衡量指标是二次谐波与三次谐波。对于理想线性网络，输出与输入功率具有相同的频率分量（如图 6.3a 所示）。非线性的器件特性会引起不期望的响应，例如产生杂散频率分量（如图 6.3b 所示）。频率为 2<i>f</i><sub>c</sub> 或 3<i>f</i><sub>c</sub> 的电压分量可用于倍频电路。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.3.png" alt="线性与非线性网络输入输出功率谱">
+  <div class="cap"><b>图 6.3</b> 输入与输出功率谱：(a) 线性网络；(b) 非线性网络</div>
+</div>
+
+<p>这一定义意味着线性电路或系统的响应只包含激励波形中已有的频率，因此线性电路不会产生新的频率。由于非线性电路通常会产生大量新的频率分量，这一判据为线性电路与非线性电路提供了一条重要的分界线。</p>
+
+<h3>6.1.2 非线性集总元件</h3>
+<p>线性集总元件的输出功率谱与输入功率无关，而非线性集总元件的输出功率谱依赖于输入功率。下面讨论几种典型的非线性集总元件（电阻、电感和电容）[1, 2]。</p>
+
+<h4>6.1.2.1 非线性电阻</h4>
+<p>对于理想集总电阻，电阻中的电流与其所加电压成正比（如图 6.4a 所示）；而非线性电阻中的电流可以描述为电阻两端电压的函数（即压控电流源，如图 6.4b 所示）：</p>
+<div class="eq"><span class="math-display">\[I = f(V)\]</span><span class="eqno">(6.1a)</span></div>
+<p>非线性电阻中的电流可以在直流偏置电压附近展开为泰勒级数：</p>
+<div class="eq"><span class="math-display">\[i = f(V_{\mathrm{o}} + v) - f(V_{\mathrm{o}}) = \sum_{i=1}^{n} g_i v^i = g_1 v + g_2 v^2 + g_3 v^3 + \cdots\]</span><span class="eqno">(6.1b)</span></div>
+<div class="eq"><span class="math-display">\[g_1 = \left.\frac{df(V)}{dV}\right|_{V=V_{\mathrm{o}}},\quad g_2 = \left.\frac{1}{2}\frac{d^2 f(V)}{dV^2}\right|_{V=V_{\mathrm{o}}},\quad g_3 = \left.\frac{1}{6}\frac{d^3 f(V)}{dV^3}\right|_{V=V_{\mathrm{o}}}\]</span></div>
+<p>其中 <i>V</i><sub>o</sub> 为直流电压，<i>v</i> 为小信号交流电压。非线性电阻可以建模为图 6.5 所示的形式，其中的线性项 <i>g</i><sub>1</sub> 即为增量电导。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.4.png" alt="线性电阻与非线性电阻">
+  <div class="cap"><b>图 6.4</b> (a) 线性电阻；(b) 非线性电阻</div>
+</div>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.5.png" alt="非线性电阻等效电路模型">
+  <div class="cap"><b>图 6.5</b> 非线性电阻的等效电路模型</div>
+</div>
+
+<p>理想二极管的非线性电流—电压特性就是一种典型的非线性电阻：</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{D}}(V_{\mathrm{j}}) = I_{\mathrm{s}}\exp\left(\frac{V_{\mathrm{j}}}{nV_{\mathrm{t}}}\right)\]</span><span class="eqno">(6.2)</span></div>
+<p>其中 <i>V</i><sub>j</sub> = <i>V</i><sub>jo</sub> + <i>v</i><sub>j</sub> 为外加电压，<i>I</i><sub>D</sub> 为二极管电流。<i>I</i><sub>D</sub>(<i>V</i><sub>j</sub>) 对 <i>V</i><sub>j</sub> 的一阶导数可表示为</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{D}}&#39;(V_{\mathrm{j}}) = \frac{I_{\mathrm{D}}(V_{\mathrm{jo}})}{nV_{\mathrm{t}}}\]</span><span class="eqno">(6.3)</span></div>
+<p>类似地，<i>I</i><sub>D</sub>(<i>V</i><sub>j</sub>) 对 <i>V</i><sub>j</sub> 的 <i>n</i> 阶导数可表示为</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{D}}{}^{n}(V_{\mathrm{j}}) = \frac{I_{\mathrm{D}}(V_{\mathrm{jo}})}{(nV_{\mathrm{t}})^{n}}\]</span><span class="eqno">(6.4)</span></div>
+<p>理想二极管的小信号电流可写为</p>
+<div class="eq"><span class="math-display">\[i = \frac{I_{\mathrm{D}}(V_{\mathrm{j}})}{nV_{\mathrm{t}}}\left(v_{\mathrm{j}} + \frac{v_{\mathrm{j}}^{2}/2!}{nV_{\mathrm{t}}} + \frac{v_{\mathrm{j}}^{3}/3!}{(nV_{\mathrm{t}})^{2}} + \cdots + \frac{v_{\mathrm{j}}^{n}/n!}{(nV_{\mathrm{t}})^{n-1}}\right)\]</span><span class="eqno">(6.5)</span></div>
+<p>通常把 <i>I</i><sub>D</sub>(<i>V</i><sub>j</sub>)/<i>nV</i><sub>t</sub> 称为理想二极管的动态电导。</p>
+
+<h4>6.1.2.2 非线性电容</h4>
+<p>电容存储的电荷量 <i>Q</i> 取决于所加电压。对于理想集总电容，电容中的电荷 <i>Q</i> 与所加电压成正比（如图 6.6a 所示）；而非线性电容中的电荷 <i>Q</i> 可以描述为电容两端电压的函数（即压控电流源，如图 6.6b 所示）：</p>
+<div class="eq"><span class="math-display">\[Q = f(V)\]</span><span class="eqno">(6.6)</span></div>
+<p>流过电容的电流是电荷的移动速率，用微积分记号表示为</p>
+<div class="eq"><span class="math-display">\[I = \frac{dQ}{dt} = \frac{df(V)}{dt} = \frac{df(V)}{dV}\cdot\frac{dV}{dt} = C(V)\frac{dV}{dt}\]</span><span class="eqno">(6.7)</span></div>
+<p>其中 <i>V</i> = <i>V</i><sub>o</sub> + <i>v</i>，<i>V</i><sub>o</sub> 为直流控制电压（实际中可以是偏置电压），<i>v</i> 为小信号交流电压。非线性电容中的电流可以在直流偏置电压附近展开为泰勒级数：</p>
+<div class="eq"><span class="math-display">\[i = \sum_{m=0}^{n} C_m(V_{\mathrm{o}})\,v^{m}\frac{dv}{dt} = \left[C_0(V_{\mathrm{o}}) + C_1(V_{\mathrm{o}})v + C_2(V_{\mathrm{o}})v^2 + \cdots\right]\frac{dv}{dt}\]</span><span class="eqno">(6.8)</span></div>
+<div class="eq"><span class="math-display">\[C_m(V_{\mathrm{o}}) = \left.\frac{1}{m!}\frac{d^{m+1}f(V)}{dV^{m+1}}\right|_{V=V_{\mathrm{o}}}\quad (m = 0, 1, \ldots, n)\]</span></div>
+<p>图 6.7 给出了非线性电容的等效电路模型，总电容可以看作无穷多个电容的并联。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.6.png" alt="线性电容与非线性电容">
+  <div class="cap"><b>图 6.6</b> (a) 线性电容；(b) 非线性电容</div>
+</div>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.7.png" alt="非线性电容等效电路模型">
+  <div class="cap"><b>图 6.7</b> 非线性电容的等效电路模型</div>
+</div>
+
+<p>当忽略较小的高阶项（<i>n</i> ≥ 2）时，非线性电容可以视为线性电容，电流可近似表示为</p>
+<div class="eq"><span class="math-display">\[i \approx C_{\mathrm{o}}(V_{\mathrm{o}})\frac{dv}{dt}\]</span><span class="eqno">(6.9)</span></div>
+<p>由式 (6.9) 可知，流过电容的电流等于 <i>C</i><sub>o</sub>(<i>V</i><sub>o</sub>) 乘以电容两端电压的变化率。若电压恒定，则电流为零。</p>
+<p>典型的非线性电容是理想二极管的结电容：</p>
+<div class="eq"><span class="math-display">\[Q_{\mathrm{j}} = f(V_{\mathrm{j}}) = 2V_{\mathrm{bi}}C_{\mathrm{jo}}\left[1 - \sqrt{1 - \frac{V_{\mathrm{j}}}{V_{\mathrm{bi}}}}\,\right]\]</span><span class="eqno">(6.10)</span></div>
+<p>一阶导数可表示为</p>
+<div class="eq"><span class="math-display">\[C_{\mathrm{j}} = \frac{C_{\mathrm{jo}}}{\sqrt{1 - \dfrac{V_{\mathrm{j}}}{V_{\mathrm{bi}}}}}\]</span><span class="eqno">(6.11)</span></div>
+<p>通常，在许多固态器件模型中，本征电容一般受两个电压控制。现在考虑图 6.8：有两个电荷 <i>Q</i><sub>1</sub> 和 <i>Q</i><sub>2</sub> 受两个电压 <i>V</i><sub>1</sub> 和 <i>V</i><sub>2</sub> 控制，相应的等效电路模型如图 6.8 所示，各系数可表示为</p>
+<div class="eq"><span class="math-display">\[C_{m1} = \left.\frac{1}{m!}\frac{df_1^{m+1}(V_1, V_2) + df_2^{m+1}(V_1, V_2)}{dV_1^{m+1}}\right|_{V=V_{1\mathrm{o}}}\quad (m = 0, 1, 2, \ldots)\]</span><span class="eqno">(6.12)</span></div>
+<div class="eq"><span class="math-display">\[C_{m2} = \left.\frac{1}{m!}\frac{df_1^{m+1}(V_1, V_2) + df_2^{m+1}(V_1, V_2)}{dV_2^{m+1}}\right|_{V=V_{2\mathrm{o}}}\quad (m = 0, 1, 2, \ldots)\]</span><span class="eqno">(6.13)</span></div>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.8.png" alt="双电压控制非线性电容等效电路模型">
+  <div class="cap"><b>图 6.8</b> 受两电压控制的非线性电容等效电路模型</div>
+</div>
+
+<h4>6.1.2.3 非线性压控电流源</h4>
+<p>晶体管的输出电流通常受两个电压控制：输入电压和输出电压（如图 6.9a 所示）。非线性压控电流源连接在输出节点与地之间。例如，BJT 的输出电流 <i>I</i><sub>ce</sub> 受基极—发射极电压 <i>V</i><sub>be</sub> 和集电极—发射极电压 <i>V</i><sub>ce</sub> 控制。图 6.10 给出了非线性电流源及相应的小信号等效电路模型：</p>
+<div class="eq"><span class="math-display">\[I = f(V_1, V_2)\]</span><span class="eqno">(6.14)</span></div>
+<p>跨导 <i>g</i><sub>mn</sub>（<i>n</i> = 0, 1, 2…）可表示为</p>
+<div class="eq"><span class="math-display">\[g_{mn} = \left.\frac{1}{n!}\frac{df^{n}(V_1, V_2)}{dV_1^{n}}\right|_{V=V_{1\mathrm{o}}}\quad (n = 0, 1, 2, \ldots)\]</span><span class="eqno">(6.15)</span></div>
+<p>输出电导 <i>g</i><sub>n</sub>（<i>n</i> = 0, 1, 2…）可表示为</p>
+<div class="eq"><span class="math-display">\[g_{n} = \left.\frac{1}{n!}\frac{df^{n}(V_1, V_2)}{dV_2^{n}}\right|_{V=V_{2\mathrm{o}}}\quad (n = 0, 1, 2, \ldots)\]</span><span class="eqno">(6.16)</span></div>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.9.png" alt="非线性电流源及其等效电路模型">
+  <div class="cap"><b>图 6.9</b> (a) 非线性电流源；(b) 相应的等效电路模型</div>
+</div>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.10.png" alt="非线性元件与线性元件的关系">
+  <div class="cap"><b>图 6.10</b> 非线性元件与线性元件之间的关系</div>
+</div>
+
+<h2 id="s6-2">6.2 大信号与小信号</h2>
+<p>小信号是指幅度很低的信号，它只覆盖器件工作特性曲线的很小一部分，因此工作状态几乎总是线性的。大信号的定义则是：信号大到足以扫过器件工作特性曲线的很大范围，以至于器件工作在非线性状态[3]。如果交流输入信号保持很小，器件的直流工作点保持不变；当交流输入信号足够大（即交流输入信号可与直流信号相比拟）时，直流工作点将发生改变。考虑一个 HBT 器件，假设输入信号具有直流基极电流 <i>I</i><sub>BO</sub> 和一个理想脉冲信号（高电平 <i>I</i><sub>B max</sub>、低电平 <i>I</i><sub>B min</sub>，如图 6.11a 和 b 所示）。在图 6.11c 所示的特性曲线的有源区中，我们选定一个特定点 Q。注意，此时晶体管的直流工作点由基极电流 <i>I</i><sub>BO</sub> 和集电极—发射极电压 <i>V</i><sub>CE</sub> 表征。当 <i>I</i><sub>B max</sub> 与 <i>I</i><sub>B min</sub> 与 <i>I</i><sub>BO</sub> 相比拟时，直流工作点将移动到 E 点和 F 点。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.11.png" alt="大信号条件下的直流工作点">
+  <div class="cap"><b>图 6.11</b> 大信号条件下的直流工作点：(a) 理想脉冲信号；(b) 输入信号；(c) 直流工作点</div>
+</div>
+
+<p>小信号、大信号、线性与非线性模型的比较总结在表 6.1 中。可以看出，大信号模型与非线性模型高度一致，可用于预测有源器件的全部射频与微波性能。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Table_6.1.png" alt="小信号、大信号、线性与非线性模型比较">
+  <div class="cap"><b>表 6.1</b> 小信号、大信号、线性与非线性模型的比较</div>
+</div>
+
+
+<h2 id="s6-3">6.3 热阻</h2>
+<p>随着器件尺寸的不断缩小，HBT 器件的静态工作点已向更高的电流密度偏移，以获得更好的高频性能。因此，在高速和大功率应用中，器件功耗引起的温升显著增加，作为热量增加之源的散热问题成为必须面对的主要问题[4–7]。功率半导体的热特性表征对于确保器件安全工作、预测其可靠性与性能十分重要。对于功率晶体管，制造商通常会给出热阻、最高安全结温度和安全工作区限值。所给出的热阻被假定在每个器件上为常数，用于在给定安装方式、散热器或环境温度的条件下，计算器件结温度随耗散功率的变化。晶体管的耗散功率等于集电结上的电压与流过它的电流的乘积，于是集电结开始发热。结温的升高会对晶体管的长期性能和工作寿命产生不利影响。最终，当晶体管耗散的能量与供给它的能量相同时，晶体管达到稳态，这些能量以热的形式通过管壳耗散到周围环境中。</p>
+
+<h3>6.3.1 定义</h3>
+<p>热阻表征封装把热量从芯片传导到周围环境的能力，定义为单位功率引起的温升，与电阻类似，单位为摄氏度每瓦（°C/W）：</p>
+<div class="eq"><span class="math-display">\[R_{\mathrm{th}} = \frac{T_{\mathrm{j}} - T_{\mathrm{a}}}{P_{\mathrm{diss}}}\]</span><span class="eqno">(6.17)</span></div>
+<p>式中：<i>R</i><sub>th</sub> 为结与参考点之间的热阻（°C/W）；<i>T</i><sub>j</sub> 为结温（°C）；<i>T</i><sub>a</sub> 为环境温度（°C）；<i>P</i><sub>diss</sub> 为耗散功率（W）。</p>
+<p>热阻的数值取决于 <i>I</i><sub>C</sub> 和 <i>V</i><sub>CE</sub>，因为 <i>I</i><sub>C</sub> 在器件内的分布（进而功率密度的分布）取决于器件的工作条件（<i>P</i><sub>diss</sub> = <i>I</i><sub>C</sub><i>V</i><sub>CE</sub>）。较低的热阻意味着在给定功率下晶体管结将工作在更低的温度，从而延长其寿命。所有半导体元件都规定了最高结温度，一旦超过就可能导致元件损坏或永久性损伤。</p>
+<p>图 6.12 给出了半导体结的热流路径[8]，此时总热阻由以下部分组成：</p>
+<div class="eq"><span class="math-display">\[R_{\mathrm{th}} = R_{\mathrm{jc}} + R_{\mathrm{ca}}\]</span><span class="eqno">(6.18)</span></div>
+<p>式中：<i>R</i><sub>th</sub> 为结到环境的热阻；<i>R</i><sub>jc</sub> 为结到封装管壳的热阻；<i>R</i><sub>ca</sub> 为封装管壳到环境的热阻。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.12.png" alt="半导体结的热流路径">
+  <div class="cap"><b>图 6.12</b> 半导体结的热流路径</div>
+</div>
+
+<p>为了增大有效散热面积、快速带走功率器件产生的热量，通常需要在芯片底部安装散热器。器件工作时，有源半导体区内的功率损耗产生的热量会使元件温度升高，热量从其源头（半导体结）经芯片、管壳和基板散至散热器（环境 <i>T</i><sub>a</sub>）。散热器把热能从温度较高的介质传递给温度较低的流体介质，并提供一条从管壳到环境空气的附加低热阻路径，从而使器件能够在更高的功率电平下工作。在电子系统中，散热器通常与功率晶体管、光电子器件等大功率半导体器件配合使用。图 6.13 给出了带散热器时半导体结的热流路径，此时总热阻由以下部分组成：</p>
+<div class="eq"><span class="math-display">\[R_{\mathrm{th}} = R_{\mathrm{jc}} + R_{\mathrm{cs}} + R_{\mathrm{sa}}\]</span><span class="eqno">(6.19)</span></div>
+<p>式中：<i>R</i><sub>th</sub> 为结到环境的热阻；<i>R</i><sub>jc</sub> 为结到封装管壳的热阻；<i>R</i><sub>cs</sub> 为封装管壳到散热器的热阻；<i>R</i><sub>sa</sub> 为散热器到环境的热阻。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.13.png" alt="带散热器的半导体结热流路径">
+  <div class="cap"><b>图 6.13</b> 带散热器时半导体结的热流路径</div>
+</div>
+
+<p>图 6.14 从热学角度给出了单指 HBT 和多指 HBT 器件的三维功率器件热传导模型示意图[4, 9–11]。顶部的小条代表 HBT 的基极—集电极结，它是器件中的主要热源；衬底底部则假设在各种偏置条件下保持在恒定的散热器温度。多指 HBT 可以看作由多个基本晶体管（单指晶体管）构成的阵列，均匀的电流和结温分布可以在每个基本晶体管内统一处理。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.14.png" alt="三维功率器件热传导模型">
+  <div class="cap"><b>图 6.14</b> 功率器件三维热传导模型示意图：(a) 单指 HBT；(b) 多指 HBT</div>
+</div>
+
+<p>固体中热传导的时变方程由下式给出[6]：</p>
+<div class="eq"><span class="math-display">\[\nabla^{2}T = \frac{\rho C_{\mathrm{p}}}{k}\frac{\partial T}{\partial t}\]</span><span class="eqno">(6.20)</span></div>
+<p>式中：<i>T</i> 为温度（°C）；<i>t</i> 为时间（s）；<i>ρ</i> 为质量密度（g/cm³）；<i>C</i><sub>p</sub> 为热容（J/g/°C）；<i>k</i> 为热导率（W/cm/°C）。<i>k</i> 与 <i>ρC</i><sub>p</sub> 之比定义为热扩散率 <i>K</i>，即</p>
+<div class="eq"><span class="math-display">\[K = \frac{k}{\rho C_{\mathrm{p}}}\]</span></div>
+<p>硅（Si）、锗（Ge）和砷化镓（GaAs）的典型热参数值汇总于表 6.2。可以看出，Si 的热扩散率高于另外两种材料。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Table_6.2.png" alt="Ge、Si、GaAs 的热常数">
+  <div class="cap"><b>表 6.2</b> Ge、Si 与 GaAs 的热常数</div>
+</div>
+
+<p>在直角坐标系中写出拉普拉斯算子，式 (6.20) 变为</p>
+<div class="eq"><span class="math-display">\[\frac{\partial^{2}T}{\partial x^{2}} + \frac{\partial^{2}T}{\partial y^{2}} + \frac{\partial^{2}T}{\partial z^{2}} = \frac{\rho C_{\mathrm{p}}}{k}\frac{\partial T}{\partial t}\]</span><span class="eqno">(6.21)</span></div>
+<p>温度分布可以用有限差分或有限元等数值方法求解。但这类方法有若干缺点：需要专门的软件；不便于把封装寄生效应包含进来；也难以计及器件—电路的相互作用。因此，把这些仿真与电路仿真器中的紧凑器件模型耦合起来并不现实。另一种途径是采用基于器件电路模型的电路分析。有源器件的等效电路模型是非线性微波计算机辅助设计仿真软件的骨干，所有商用软件都包含一种或多种各类器件模型。其建模思想是：用基本的电阻、电容和控制源来表示复杂的有源器件。为了仿真温度对器件的影响，需要引入一个附加的热网络来计及 HBT 器件的自热效应。一个完整的非线性 HBT 模型由电网络和热网络两部分组成。图 6.15 给出了带自热效应的 HBT 建模概念，可按如下步骤进行：</p>
+<ol>
+<li>在室温 <i>T</i><sub>a</sub> 下对带自热效应的 HBT 进行非线性建模；</li>
+<li>利用热网络计算结温度 <i>T</i><sub>j</sub>；</li>
+<li>把 <i>T</i><sub>j</sub> 引入等效电路模型。</li>
+</ol>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.15.png" alt="带自热效应的 HBT 建模概念">
+  <div class="cap"><b>图 6.15</b> 带自热效应的 HBT 建模概念</div>
+</div>
+
+<p>为了确定结温度 <i>T</i><sub>j</sub>，出于简化考虑，假设一维（1-D）热流方程成立：</p>
+<div class="eq"><span class="math-display">\[\frac{\partial^{2}T}{\partial x^{2}} = \frac{\rho C_{\mathrm{p}}}{k}\frac{\partial T}{\partial t}\]</span><span class="eqno">(6.22)</span></div>
+<p>耗散功率 <i>P</i><sub>diss</sub> 可表示为</p>
+<div class="eq"><span class="math-display">\[P_{\mathrm{diss}} = kA\frac{\partial T}{\partial x}\]</span><span class="eqno">(6.23)</span></div>
+<p>把式 (6.23) 代入式 (6.22)，可得</p>
+<div class="eq"><span class="math-display">\[\frac{\partial P_{\mathrm{diss}}}{\partial x} = \rho C_{\mathrm{p}}A\frac{\partial T}{\partial t}\]</span><span class="eqno">(6.24)</span></div>
+<p>式中 <i>A</i> 为热源的面积（cm²）。</p>
+
+<h3>6.3.2 等效电路模型</h3>
+<p>从式 (6.22) 到 (6.24) 可以发现，这些方程与微波传输线方程存在直接的类比关系。为了便于理解热学方程与传输线方程之间的联系，下面简要介绍微波传输线的概念。</p>
+<p>众所周知，传输线是分布参数网络，其上电压和电流的幅度与相位沿线变化。在传输线上位置 <i>x</i> 处，存在随时间变化的电压 <i>v</i>(<i>x</i>, <i>t</i>) 和电流 <i>i</i>(<i>x</i>, <i>t</i>)。对于 <i>x</i> 与 <i>x</i> + Δ<i>x</i> 之间相对波长很小的一段，其等效模型可以用图 6.16 所示的集总等效电路表示，其中 <i>R</i>、<i>C</i>、<i>L</i>、<i>G</i> 为单位长度参量，定义如下：<i>R</i> 为单位长度串联电阻（Ω/cm）；<i>C</i> 为单位长度并联电容（pF/cm）；<i>L</i> 为单位长度串联电感（pH/cm）；<i>G</i> 为单位长度并联电导（mS/cm）。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.16.png" alt="传输线等效电路模型">
+  <div class="cap"><b>图 6.16</b> 传输线等效电路模型</div>
+</div>
+
+<p>对图 6.16 的等效电路模型应用基尔霍夫电压定律和电流定律，可得</p>
+<div class="eq"><span class="math-display">\[v(x,t) - v(x+\Delta x, t) = R\Delta x\cdot i(x,t) + L\Delta x\cdot\frac{\partial i(x,t)}{\partial t}\]</span><span class="eqno">(6.25)</span></div>
+<div class="eq"><span class="math-display">\[i(x,t) - i(x+\Delta x, t) = G\Delta x\cdot v(x,t) + C\Delta x\cdot\frac{\partial v(x,t)}{\partial t}\]</span><span class="eqno">(6.26)</span></div>
+<p>把上述两式除以 Δ<i>x</i> 并取 Δ<i>x</i> 趋于 0 的极限，得到如下方程：</p>
+<div class="eq"><span class="math-display">\[\frac{\partial v(x,t)}{\partial x} = -\frac{v(x,t)-v(x+\Delta x,t)}{\Delta x}\bigg|_{\Delta x\to 0} = -\left[Ri(x,t) + L\frac{\partial i(x,t)}{\partial t}\right]\]</span><span class="eqno">(6.27)</span></div>
+<div class="eq"><span class="math-display">\[\frac{\partial i(x,t)}{\partial x} = -\frac{i(x,t)-i(x+\Delta x,t)}{\Delta x}\bigg|_{\Delta x\to 0} = -\left[Gv(x,t) + C\frac{\partial v(x,t)}{\partial t}\right]\]</span><span class="eqno">(6.28)</span></div>
+<p>令 <i>L</i> = <i>G</i> = 0，上述方程可简化为</p>
+<div class="eq"><span class="math-display">\[\frac{\partial v(x,t)}{\partial x} = -Ri(x,t)\]</span><span class="eqno">(6.29)</span></div>
+<div class="eq"><span class="math-display">\[\frac{\partial i(x,t)}{\partial x} = -C\frac{\partial v(x,t)}{\partial t}\]</span><span class="eqno">(6.30)</span></div>
+<p>把式 (6.30) 代入式 (6.29)，可得</p>
+<div class="eq"><span class="math-display">\[\frac{\partial^{2}v(x,t)}{\partial x^{2}} = RC\frac{\partial v(x,t)}{\partial t}\]</span><span class="eqno">(6.31)</span></div>
+<p>对照式 (6.22) 与式 (6.31) 可知，热流过程可以用图 6.16 所示的传输线等效电路来建模，此时传输线单位长度的电阻和电容分别为</p>
+<div class="eq"><span class="math-display">\[R = \frac{1}{kA}\]</span><span class="eqno">(6.32)</span></div>
+<div class="eq"><span class="math-display">\[C = \rho C_{\mathrm{p}}A\]</span><span class="eqno">(6.33)</span></div>
+<p>图 6.17 给出了基于传输线等效电路的热模型；该模型可以植入电路仿真器，其节点电压即为结相对环境的温升。此时电流源代表器件的耗散功率。热阻和热容可用于预测半导体器件的结温度，通常用集总等效元件 <i>R</i><sub>th</sub> 和 <i>C</i><sub>th</sub> 表示。电参数与类比的热参数的比较见表 6.3[6]。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.17.png" alt="基于传输线等效电路的热模型">
+  <div class="cap"><b>图 6.17</b> 基于传输线等效电路的热模型</div>
+</div>
+
+<div class="figure">
+  <img src="ch6_figs/Table_6.3.png" alt="电参数与类比热参数比较">
+  <div class="cap"><b>表 6.3</b> 电参数与类比热参数的比较</div>
+</div>
+
+<p>图 6.17 中的热模型由多个具有相同热阻和热容的单元组成，仅适用于芯片本身。对于封装后的器件，一种更普遍的热模型由具有独立热模型参数的多个单元组成，如图 6.18 所示。例如，<i>R</i><sub>th1</sub> 表示结与封装管壳之间的热阻，<i>R</i><sub>th2</sub> 表示封装管壳与散热器之间的热阻，<i>R</i><sub>th3</sub> 表示散热器与环境之间的热阻。热输入阻抗 <i>Z</i><sub>th</sub> 可表示为</p>
+<div class="eq"><span class="math-display">\[Z_{\mathrm{th}} = \cfrac{1}{j\omega C_{\mathrm{th1}} + \cfrac{1}{R_{\mathrm{th1}} + \cfrac{1}{j\omega C_{\mathrm{th2}} + \cfrac{1}{R_{\mathrm{th2}}} + \cdots}}}\]</span><span class="eqno">(6.34)</span></div>
+<p>在图 6.18 中，一个热阻与一个热容并联可视为一个基本热学单元，因此该模型也称为"并联热模型"。图 6.19 给出了另一种最常用的热模型，其基本热学单元由一个热阻与一个热容串联构成，因此称为"串联热模型"。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.18.png" alt="封装器件的通用热模型">
+  <div class="cap"><b>图 6.18</b> 封装器件的通用热模型</div>
+</div>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.19.png" alt="最常用的串联热模型">
+  <div class="cap"><b>图 6.19</b> 最常用的串联热模型</div>
+</div>
+
+<h3>6.3.3 热阻的确定</h3>
+<p>很少有电子器件像双极结型晶体管那样对温度变化如此敏感。这一事实在功率 HBT 的设计和应用中必须经常加以考虑。热现象的表征对于现代双极电路设计的热稳定性和可靠性分析十分必要。HBT 所有最重要的退化机制都会随温度加速。图 6.20 给出了一组典型的 <i>V</i><sub>BE</sub>–<i>V</i><sub>CE</sub> 和 <i>I</i><sub>C</sub>–<i>V</i><sub>CE</sub> 特性曲线，显示了自热效应的影响。HBT 的自热会按照器件内部功耗所引起的温升改变 <i>V</i><sub>BE</sub> 和 <i>I</i><sub>C</sub>。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.20.png" alt="热阻对 VBE 和 IC 的影响">
+  <div class="cap"><b>图 6.20</b> 热阻对 <i>V</i><sub>BE</sub> 与 <i>I</i><sub>C</sub> 的影响：(a) 基极—发射极电压；(b) 集电极电流</div>
+</div>
+
+<p>热阻抗的表征与测量对 HBT 技术的建模和可靠性评估十分重要，尤其是封装和散热的影响。为了确定工作温度，需要对器件热阻抗进行精确测定。这种表征基本上基于稳态条件提取热阻、基于瞬态条件提取热容[12–16]。</p>
+<p>下面介绍三种常用的 HBT 热阻测定方法：(i) <i>I</i><sub>C</sub>–<i>P</i><sub>diss</sub>–<i>T</i> 测量法；(ii) <i>V</i><sub>BE</sub>–<i>P</i><sub>diss</sub>–<i>T</i> 测量法；(iii) 高自热测量法。</p>
+
+<h4>6.3.3.1 IC–Pdiss–T 测量法</h4>
+<p>图 6.21 给出了基极电流 <i>I</i><sub>B</sub> 恒定时，HBT 器件集电极电流 <i>I</i><sub>C</sub> 随基板温度 <i>T</i><sub>d</sub> 的变化曲线。可以看出，电流增益 β 随衬底温度 <i>T</i><sub>d</sub> 的升高而下降，并逐渐偏离线性[13, 14]。把电流增益 β 的温度依赖关系近似为线性，可得如下表达式：</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{C}}(T_{\mathrm{j}}) = \left[\beta(T_{\mathrm{j1}}) + \frac{\Delta\beta}{\Delta T}(T_{\mathrm{j}} - T_{\mathrm{j1}})\right]I_{\mathrm{B}}\]</span><span class="eqno">(6.35)</span></div>
+<p>式中：<i>T</i><sub>j</sub> 为器件的平均结温度；<i>T</i><sub>j1</sub> 为进行线性近似的参考温度；β(<i>T</i><sub>j1</sub>) 为 <i>T</i><sub>j1</sub> 处的电流增益；Δβ/Δ<i>T</i> 为 <i>T</i><sub>j1</sub> 处电流增益随温度变化的斜率。器件结温度与热阻 <i>R</i><sub>th</sub> 的关系为</p>
+<div class="eq"><span class="math-display">\[T_{\mathrm{j}} = R_{\mathrm{th}}P_{\mathrm{diss}} + T_{\mathrm{d}}\]</span><span class="eqno">(6.36)</span></div>
+<p>式中</p>
+<div class="eq"><span class="math-display">\[P_{\mathrm{diss}} = V_{\mathrm{CE}}I_{\mathrm{C}} + V_{\mathrm{BE}}I_{\mathrm{B}}\]</span></div>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.21.png" alt="恒定 IB 下 IC 随基板温度的变化">
+  <div class="cap"><b>图 6.21</b> 基极电流 <i>I</i><sub>B</sub> 恒定时集电极电流 <i>I</i><sub>C</sub> 随衬底温度 <i>T</i><sub>d</sub> 的变化</div>
+</div>
+
+<p>把式 (6.36) 代入式 (6.35)，可得</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{C}}(T_{\mathrm{d}}, P_{\mathrm{diss}}) = \left[\beta(T_{\mathrm{j1}}) + \frac{\Delta\beta}{\Delta T}(T_{\mathrm{d}} - T_{\mathrm{j1}}) + \frac{\Delta\beta}{\Delta T}R_{\mathrm{th}}P_{\mathrm{diss}}\right]I_{\mathrm{B}}\]</span><span class="eqno">(6.37)</span></div>
+<p><i>I</i><sub>C</sub>(<i>T</i><sub>d</sub>, <i>P</i><sub>diss</sub>) 对 <i>P</i><sub>diss</sub> 和 <i>T</i><sub>d</sub> 的偏导数分别为</p>
+<div class="eq"><span class="math-display">\[\frac{\Delta\beta}{\Delta T}R_{\mathrm{th}}I_{\mathrm{B}} = \frac{\partial I_{\mathrm{C}}(T_{\mathrm{d}}, P_{\mathrm{diss}})}{\partial P_{\mathrm{diss}}}\]</span><span class="eqno">(6.38)</span></div>
+<div class="eq"><span class="math-display">\[\frac{\Delta\beta}{\Delta T}I_{\mathrm{B}} = \frac{\partial I_{\mathrm{C}}(T_{\mathrm{d}}, P_{\mathrm{diss}})}{\partial T_{\mathrm{d}}}\]</span><span class="eqno">(6.39)</span></div>
+<p>联立式 (6.38) 与 (6.39)，热阻可直接测定为</p>
+<div class="eq"><span class="math-display">\[R_{\mathrm{th}} = \frac{\partial I_{\mathrm{C}}(T_{\mathrm{d}}, P_{\mathrm{diss}})/\partial P_{\mathrm{diss}}}{\partial I_{\mathrm{C}}(T_{\mathrm{d}}, P_{\mathrm{diss}})/\partial T_{\mathrm{d}}}\]</span><span class="eqno">(6.40)</span></div>
+<p>图 6.22 给出了两个不同衬底温度 <i>T</i><sub>d1</sub> 和 <i>T</i><sub>d2</sub> 下的输出特性。点 A 与点 B 具有相同的结温度特征，而点 A 与点 C 具有相同的功耗。因此，式 (6.40) 可改写为[14]</p>
+<div class="eq"><span class="math-display">\[R_{\mathrm{th}} = \frac{\dfrac{I_{\mathrm{C}A} - I_{\mathrm{C}B}}{P_1 - P_2}}{\dfrac{I_{\mathrm{C}A} - I_{\mathrm{C}C}}{T_{\mathrm{d}1} - T_{\mathrm{d}2}}}\]</span><span class="eqno">(6.41)</span></div>
+<p>或</p>
+<div class="eq"><span class="math-display">\[R_{\mathrm{th}} = \frac{\dfrac{\beta_{A} - \beta_{B}}{P_1 - P_2}}{\dfrac{\beta_{A} - \beta_{C}}{T_{\mathrm{d}1} - T_{\mathrm{d}2}}}\]</span><span class="eqno">(6.42)</span></div>
+<p>注意，这种方法的热阻精度受限于电流增益 β 与衬底温度之间关系的线性度。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.22.png" alt="IC 随 VCE 与 Pdiss 的变化">
+  <div class="cap"><b>图 6.22</b> 集电极电流 <i>I</i><sub>C</sub> 随 <i>V</i><sub>CE</sub> 与 <i>P</i><sub>diss</sub> 的变化：(a) <i>I</i><sub>C</sub>–<i>V</i><sub>CE</sub>；(b) <i>I</i><sub>C</sub>–<i>P</i><sub>diss</sub></div>
+</div>
+
+<h4>6.3.3.2 VBE–Pdiss–T 测量法</h4>
+<p>基极—发射极电压 <i>V</i><sub>BE</sub> 的温度依赖关系可表示为[13]</p>
+<div class="eq"><span class="math-display">\[V_{\mathrm{BE}}(T_{\mathrm{j}}) = V_{\mathrm{BE}}(T_{\mathrm{j1}}) + \frac{\Delta V_{\mathrm{BE}}}{\Delta T}(T_{\mathrm{j}} - T_{\mathrm{j1}})\]</span><span class="eqno">(6.43)</span></div>
+<p>式中：<i>T</i><sub>j</sub> 为器件的平均结温度；<i>T</i><sub>j1</sub> 为进行线性近似的参考温度；Δ<i>V</i><sub>BE</sub>/Δ<i>T</i> 为 <i>T</i><sub>j1</sub> 处 <i>V</i><sub>BE</sub> 随温度变化的斜率。图 6.23 给出了基极—发射极电压 <i>V</i><sub>BE</sub> 随温度 <i>T</i> 的变化。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.23.png" alt="VBE 随温度的变化">
+  <div class="cap"><b>图 6.23</b> 基极—发射极电压 <i>V</i><sub>BE</sub> 随温度 <i>T</i> 的变化</div>
+</div>
+
+<p>把式 (6.36) 代入式 (6.43)，可得</p>
+<div class="eq"><span class="math-display">\[V_{\mathrm{BE}}(T_{\mathrm{d}}, P_{\mathrm{diss}}) = V_{\mathrm{BE}}(T_{\mathrm{j1}}) + \frac{\Delta V_{\mathrm{BE}}}{\Delta T}(T_{\mathrm{d}} - T_{\mathrm{j1}}) + \frac{\Delta V_{\mathrm{BE}}}{\Delta T}R_{\mathrm{th}}P_{\mathrm{diss}}\]</span><span class="eqno">(6.44)</span></div>
+<p><i>V</i><sub>BE</sub>(<i>T</i><sub>d</sub>, <i>P</i><sub>diss</sub>) 对 <i>P</i><sub>diss</sub> 和 <i>T</i><sub>d</sub> 的偏导数分别为</p>
+<div class="eq"><span class="math-display">\[\frac{\Delta V_{\mathrm{BE}}}{\Delta T}R_{\mathrm{th}} = \frac{\partial V_{\mathrm{BE}}(T_{\mathrm{d}}, P_{\mathrm{diss}})}{\partial P_{\mathrm{diss}}}\]</span><span class="eqno">(6.45)</span></div>
+<div class="eq"><span class="math-display">\[\frac{\Delta V_{\mathrm{BE}}}{\Delta T} = \frac{\partial V_{\mathrm{BE}}(T_{\mathrm{d}}, P_{\mathrm{diss}})}{\partial T_{\mathrm{d}}}\]</span><span class="eqno">(6.46)</span></div>
+<p>联立式 (6.45) 与 (6.46)，热阻可直接测定为</p>
+<div class="eq"><span class="math-display">\[R_{\mathrm{th}} = \frac{\partial V_{\mathrm{BE}}(T_{\mathrm{d}}, P_{\mathrm{diss}})/\partial P_{\mathrm{diss}}}{\partial V_{\mathrm{BE}}(T_{\mathrm{d}}, P_{\mathrm{diss}})/\partial T_{\mathrm{d}}}\]</span><span class="eqno">(6.47)</span></div>
+<p>图 6.24 给出了两个不同衬底温度 <i>T</i><sub>d1</sub> 和 <i>T</i><sub>d2</sub> 下基极—发射极电压 <i>V</i><sub>BE</sub> 随温度 <i>T</i> 的变化。点 A 与点 B 具有相同的结温度特征，而点 A 与点 C 具有相同的功耗。因此，式 (6.40) 可改写为[14]</p>
+<div class="eq"><span class="math-display">\[R_{\mathrm{th}} = \frac{\dfrac{V_{\mathrm{BE}A} - V_{\mathrm{BE}B}}{P_1 - P_2}}{\dfrac{V_{\mathrm{BE}A} - V_{\mathrm{BE}C}}{T_{\mathrm{d}1} - T_{\mathrm{d}2}}}\]</span><span class="eqno">(6.48)</span></div>
+<p>应当指出，β 随温度变化的线性度并不是全局要求，而只是进行线性化的那一点附近的局部要求。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.24.png" alt="VBE 随功耗的变化">
+  <div class="cap"><b>图 6.24</b> 基极—发射极电压 <i>V</i><sub>BE</sub> 随功耗 <i>P</i><sub>diss</sub> 的变化</div>
+</div>
+
+<h4>6.3.3.3 高自热法</h4>
+<p>图 6.25 给出了恒定 <i>I</i><sub>B</sub> 下、三个环境温度（<i>T</i><sub>d1</sub> = <i>T</i> − Δ<i>T</i>、<i>T</i><sub>d2</sub> = <i>T</i>、<i>T</i><sub>d3</sub> = <i>T</i> + Δ<i>T</i>）时集电极电流 <i>I</i><sub>C</sub> 随 <i>V</i><sub>CE</sub> 的变化曲线；在高自热或高功耗工作条件下的三个偏置点以功耗 <i>P</i><sub>1</sub>、<i>P</i><sub>2</sub>、<i>P</i><sub>3</sub> 表征[15]。在这三个偏置点处，基极电流和集电极电流分别相同，对应的器件平均结温度也相同。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.25.png" alt="三个环境温度下 IC 随 VCE 的变化">
+  <div class="cap"><b>图 6.25</b> 恒定 <i>I</i><sub>B</sub> 下、三个环境温度时集电极电流 <i>I</i><sub>C</sub> 随 <i>V</i><sub>CE</sub> 的变化</div>
+</div>
+
+<p>假设热阻与衬底温度的关系为如下线性函数：</p>
+<div class="eq"><span class="math-display">\[R_{\mathrm{th}}(T_{\mathrm{d}}) = A + BT_{\mathrm{d}}\]</span><span class="eqno">(6.49)</span></div>
+<p>三个偏置点处的器件平均结温度可写为</p>
+<div class="eq"><span class="math-display">\[T_{\mathrm{j}} = T - \Delta T + \left[A + B(T - \Delta T)\right]P_1\]</span><span class="eqno">(6.50)</span></div>
+<div class="eq"><span class="math-display">\[T_{\mathrm{j}} = T + (A + BT)P_2\]</span><span class="eqno">(6.51)</span></div>
+<div class="eq"><span class="math-display">\[T_{\mathrm{j}} = T + \Delta T + \left[A + B(T + \Delta T)\right]P_3\]</span><span class="eqno">(6.52)</span></div>
+<p>联立式 (6.50)、(6.51) 与 (6.52)，器件平均结温度可直接确定：</p>
+<div class="eq"><span class="math-display">\[T_{\mathrm{j}} = T + m\Delta T\]</span><span class="eqno">(6.53)</span></div>
+<p>式中</p>
+<div class="eq"><span class="math-display">\[m = \frac{P_2/P_3 - P_2/P_1}{P_2/P_3 + P_2/P_1 - 2}\]</span></div>
+<p>把式 (6.53) 代入式 (6.50)、(6.51) 与 (6.52)，可得</p>
+<div class="eq"><span class="math-display">\[R_{\mathrm{th}}(T_{\mathrm{d}1}) = A + B(T - \Delta T) = \frac{T_{\mathrm{j}} - T + \Delta T}{P_1} = \frac{(1 + m)\Delta T}{P_1}\]</span><span class="eqno">(6.54)</span></div>
+<div class="eq"><span class="math-display">\[R_{\mathrm{th}}(T_{\mathrm{d}2}) = A + BT = \frac{T_{\mathrm{j}} - T}{P_2} = \frac{m\Delta T}{P_2}\]</span><span class="eqno">(6.55)</span></div>
+<div class="eq"><span class="math-display">\[R_{\mathrm{th}}(T_{\mathrm{d}3}) = A + B(T + \Delta T) = \frac{T_{\mathrm{j}} - T - \Delta T}{P_3} = \frac{(m - 1)\Delta T}{P_3}\]</span><span class="eqno">(6.56)</span></div>
+<p>这种方法只利用三次简单的直流测量——在这三次测量中结温度已被证明相同——因此不依赖 β 或 <i>V</i><sub>BE</sub> 随温度的线性化。在用于功率放大器的高功耗 HBT 中，器件的热阻抗不是常数，而是功耗与环境温度二者的函数。图 6.26 给出了热阻抗 <i>R</i><sub>th</sub> 随功耗 <i>P</i><sub>diss</sub> 和衬底温度 <i>T</i><sub>d</sub> 变化的典型曲线[16]。可以看出，<i>R</i><sub>th</sub> 随 <i>P</i><sub>diss</sub> 和 <i>T</i><sub>d</sub> 的增大而增大。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.26.png" alt="Rth 随 Pdiss 与 Td 的变化">
+  <div class="cap"><b>图 6.26</b> <i>R</i><sub>th</sub> 随 <i>P</i><sub>diss</sub> 与 <i>T</i><sub>d</sub> 的变化：(a) <i>R</i><sub>th</sub>–<i>P</i><sub>diss</sub>；(b) <i>R</i><sub>th</sub>–<i>T</i><sub>d</sub></div>
+</div>
+
+
+<h2 id="s6-4">6.4 非线性 HBT 建模</h2>
+<p>SPICE Gummel–Poon（SGP）模型作为工业标准双极晶体管模型已经三十余年。然而 SGP 模型的用户发现，它已不足以表征现代双极晶体管中许多重要的物理效应[17–21]，因此 SGP 模型有待改进。下面简要介绍常用的 HBT 非线性模型，如垂直双极集成电路公司（VBIC）模型、Agilent 模型以及若干改进的 SGP 模型[22–26]。</p>
+
+<h3>6.4.1 VBIC 模型</h3>
+<p>VBIC 模型具有许多优良特性，包括完善的自热与热效应、寄生晶体管、理想与非理想二极管电流的分离、本征与外在基极—发射极结、分布式的基极—发射极交流/直流集边效应、准饱和建模、交叠电容以及渡越时间上的 Early 效应等。图 6.27 给出了 NPN 和 PNP 晶体管 VBIC 模型的完整等效原理图。除基极、集电极和发射极之间的主 NPN 晶体管外，在基极、集电极和衬底之间还有一个附加的寄生 PNP 晶体管；类似地，除基极、集电极和发射极之间的主 PNP 晶体管外，在基极、集电极和衬底之间还有一个附加的寄生 NPN 晶体管。图 6.28 给出了 NPN 晶体管的 VBIC 等效电路模型[22]。该模型包括一个基于 Gummel–Poon 模型的本征 NPN BJT 和一个寄生 PNP BJT（后者用部分 Gummel–Poon 模型描述）。过剩相位通过一个二阶网络建模，自热则通过在各个网络元件的支路关系中加入局部温升的影响、并增加一个热网络来模拟局部温升的方式加以建模。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.27.png" alt="VBIC 模型等效原理图">
+  <div class="cap"><b>图 6.27</b> VBIC 模型的等效原理图：(a) NPN；(b) PNP</div>
+</div>
+
+<p>本征晶体管的传输电流 <i>I</i><sub>CC</sub> 可表示为</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{CC}} = I_{\mathrm{ce}} - I_{\mathrm{ec}}\]</span><span class="eqno">(6.57)</span></div>
+<p>式中 <i>I</i><sub>ce</sub> 和 <i>I</i><sub>ec</sub> 分别为正向和反向传输电流：</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{ce}} = \frac{I_{\mathrm{S}}}{q_{\mathrm{b}}}\left[\exp\left(\frac{qV_{\mathrm{bei}}}{\eta_{\mathrm{f}}kT}\right) - 1\right]\]</span><span class="eqno">(6.58)</span></div>
+<div class="eq"><span class="math-display">\[I_{\mathrm{ec}} = \frac{I_{\mathrm{S}}}{q_{\mathrm{b}}}\left[\exp\left(\frac{qV_{\mathrm{bci}}}{\eta_{\mathrm{r}}kT}\right) - 1\right]\]</span><span class="eqno">(6.59)</span></div>
+<p>式中 <i>I</i><sub>S</sub> 为传输饱和电流，<i>η</i><sub>f</sub> 和 <i>η</i><sub>r</sub> 分别为正向和反向非理想系数。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.28.png" alt="NPN 晶体管 VBIC 等效电路模型">
+  <div class="cap"><b>图 6.28</b> NPN 晶体管的 VBIC 等效电路模型：(a) 电学模型；(b) 热学模型</div>
+</div>
+
+<p>归一化基区电荷 <i>q</i><sub>b</sub> 采用耗尽电荷与扩散电荷两个分量建模，可表示为</p>
+<div class="eq"><span class="math-display">\[q_{\mathrm{b}} = \frac{q_1}{2} + \sqrt{\left(\frac{q_1}{2}\right)^{2} + q_2}\]</span><span class="eqno">(6.60)</span></div>
+<p>式中</p>
+<div class="eq"><span class="math-display">\[q_1 = 1 + \frac{q_{\mathrm{je}}}{V_{\mathrm{ER}}} + \frac{q_{\mathrm{jc}}}{V_{\mathrm{EF}}}\]</span></div>
+<div class="eq"><span class="math-display">\[q_2 = \frac{I_{\mathrm{S}}}{I_{\mathrm{kf}}}\left[\exp\left(\frac{qV_{\mathrm{bei}}}{\eta_{\mathrm{f}}kT}\right) - 1\right] + \frac{I_{\mathrm{S}}}{I_{\mathrm{kr}}}\left[\exp\left(\frac{qV_{\mathrm{bci}}}{\eta_{\mathrm{r}}kT}\right) - 1\right]\]</span></div>
+<p>式中 <i>I</i><sub>kf</sub> 和 <i>I</i><sub>kr</sub> 分别为正向和反向电流增益发生大电流跌落的拐点电流，<i>V</i><sub>AF</sub> 和 <i>V</i><sub>AR</sub> 分别为正向和反向 Early 电压。<i>q</i><sub>je</sub> 和 <i>q</i><sub>jc</sub> 为空间电荷（耗尽）电容 <i>C</i><sub>je</sub> 和 <i>C</i><sub>jc</sub> 的归一化电荷：</p>
+<div class="eq"><span class="math-display">\[q_{\mathrm{je}} = \frac{P_{\mathrm{je}}}{(1 - M_{\mathrm{je}})}\left[1 - \left(1 - \frac{V_{\mathrm{je}}}{P_{\mathrm{je}}}\right)^{1-M_{\mathrm{je}}}\right]\]</span><span class="eqno">(6.61)</span></div>
+<div class="eq"><span class="math-display">\[q_{\mathrm{jc}} = \frac{P_{\mathrm{jc}}}{(1 - M_{\mathrm{jc}})}\left[1 - \left(1 - \frac{V_{\mathrm{jc}}}{P_{\mathrm{jc}}}\right)^{1-M_{\mathrm{jc}}}\right]\]</span><span class="eqno">(6.62)</span></div>
+<p><i>M</i><sub>je</sub> 和 <i>M</i><sub>jc</sub> 为结梯度系数，<i>P</i><sub>je</sub> 和 <i>P</i><sub>jc</sub> 代表内建电位因子。</p>
+<p>本征 NPN 晶体管基极—发射极结的总电流为</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{be}} = I_{\mathrm{ben}} + I_{\mathrm{bexn}} + I_{\mathrm{bei}} + I_{\mathrm{bexi}} = I_{\mathrm{BEN}}\left[\exp\left(\frac{qV_{\mathrm{bei}}}{\eta_{\mathrm{en}}kT}\right) - 1\right] + I_{\mathrm{BEI}}\left[\exp\left(\frac{qV_{\mathrm{bei}}}{\eta_{\mathrm{ei}}kT}\right) - 1\right]\]</span><span class="eqno">(6.63)</span></div>
+<p><i>I</i><sub>BEN</sub> 和 <i>η</i><sub>en</sub> 分别为非理想基极—发射极泄漏饱和电流和发射系数；<i>I</i><sub>BEI</sub> 和 <i>η</i><sub>ei</sub> 分别为理想基极—发射极泄漏饱和电流和发射系数。</p>
+<p>本征 NPN 晶体管基极—集电极结的总电流为</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{bc}} = I_{\mathrm{bcn}} + I_{\mathrm{bci}} = I_{\mathrm{BCN}}\left[\exp\left(\frac{qV_{\mathrm{bci}}}{\eta_{\mathrm{cn}}kT}\right) - 1\right] + I_{\mathrm{BCI}}\left[\exp\left(\frac{qV_{\mathrm{bci}}}{\eta_{\mathrm{ci}}kT}\right) - 1\right]\]</span><span class="eqno">(6.64)</span></div>
+<p><i>I</i><sub>BCN</sub> 和 <i>η</i><sub>cn</sub> 分别为非理想基极—集电极泄漏饱和电流和发射系数；<i>I</i><sub>BCI</sub> 和 <i>η</i><sub>ci</sub> 分别为理想基极—集电极泄漏饱和电流和发射系数。</p>
+<p>对于外在 PNP 晶体管，本征晶体管的传输电流 <i>I</i><sub>CP</sub> 可表示为</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{CP}} = \frac{I_{\mathrm{tfp}} - I_{\mathrm{trp}}}{q_{\mathrm{bp}}}\]</span><span class="eqno">(6.65)</span></div>
+<p>式中</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{tfp}} = I_{\mathrm{sp}}\left\{W_{\mathrm{sp}}\left[\exp\left(\frac{qV_{\mathrm{bep}}}{\eta_{\mathrm{fp}}kT}\right) - 1\right] + (1 - W_{\mathrm{sp}})\left[\exp\left(\frac{qV_{\mathrm{bci}}}{\eta_{\mathrm{fp}}kT}\right) - 1\right]\right\}\]</span></div>
+<div class="eq"><span class="math-display">\[I_{\mathrm{trp}} = I_{\mathrm{sp}}\left[\exp\left(\frac{qV_{\mathrm{bcp}}}{\eta_{\mathrm{fp}}kT}\right) - 1\right]\]</span></div>
+<p>式中 <i>I</i><sub>tfp</sub> 和 <i>I</i><sub>trp</sub> 分别为正向和反向传输电流，<i>q</i><sub>bp</sub> 为外在 PNP 晶体管的归一化基区电荷，<i>W</i><sub>sp</sub> 为分裂因子。</p>
+<p>外在 PNP 晶体管基极—发射极结的总电流为</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{bep}} = I_{\mathrm{benp}}\left[\exp\left(\frac{qV_{\mathrm{bep}}}{\eta_{\mathrm{cn}}kT}\right) - 1\right] + I_{\mathrm{beip}}\left[\exp\left(\frac{qV_{\mathrm{bep}}}{\eta_{\mathrm{ci}}kT}\right) - 1\right]\]</span><span class="eqno">(6.66)</span></div>
+<p><i>I</i><sub>benp</sub> 和 <i>η</i><sub>cn</sub> 分别为外在 PNP 晶体管的非理想基极—发射极泄漏饱和电流和发射系数；<i>I</i><sub>beip</sub> 和 <i>η</i><sub>ci</sub> 分别为理想基极—发射极泄漏饱和电流和发射系数。</p>
+<p>外在 PNP 晶体管基极—集电极结的总电流为</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{bcp}} = I_{\mathrm{bcip}}\left[\exp\left(\frac{qV_{\mathrm{bcp}}}{\eta_{\mathrm{ncip}}kT}\right) - 1\right] + I_{\mathrm{bcnp}}\left[\exp\left(\frac{qV_{\mathrm{bcp}}}{\eta_{\mathrm{ncnp}}kT}\right) - 1\right]\]</span><span class="eqno">(6.67)</span></div>
+<p><i>I</i><sub>bcnp</sub> 和 <i>η</i><sub>ncnp</sub> 分别为非理想基极—集电极泄漏饱和电流和发射系数；<i>I</i><sub>bcip</sub> 和 <i>η</i><sub>ncip</sub> 分别为理想基极—集电极泄漏饱和电流和发射系数。</p>
+
+<h3>6.4.2 Agilent 模型</h3>
+<p>Agilent HBT 模型的大信号拓扑如图 6.29 所示。该模型基于 UCSD HBT 模型与 Gummel–Poon BJT 模型的组合[25, 26]。热等效电路如图 6.29b 所示，它一般是支配热传播的扩散方程的两极点近似；对 III–V 族器件，实践表明许多情况下至少需要两个极点[27]。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.29.png" alt="Agilent HBT 模型大信号拓扑">
+  <div class="cap"><b>图 6.29</b> Agilent HBT 模型的大信号拓扑：(a) 电学模型；(b) 热学模型</div>
+</div>
+
+<p>集电极—发射极电流 <i>I</i><sub>CE</sub> 由下式给出：</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{CE}} = I_{\mathrm{cf}} - I_{\mathrm{cr}}\]</span><span class="eqno">(6.68)</span></div>
+<p>式中 <i>I</i><sub>cf</sub> 和 <i>I</i><sub>cr</sub> 分别为正向和反向传输电流：</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{cf}} = \frac{I_{\mathrm{s}}}{q_{3m}DD}\left[\exp\left(\frac{qV_{\mathrm{bei}}}{\eta_{\mathrm{f}}kT}\right) - 1\right]\]</span><span class="eqno">(6.69)</span></div>
+<div class="eq"><span class="math-display">\[I_{\mathrm{cr}} = \frac{I_{\mathrm{sr}}}{DD}\left[\exp\left(\frac{qV_{\mathrm{bci}}}{\eta_{\mathrm{r}}kT}\right) - 1\right]\]</span><span class="eqno">(6.70)</span></div>
+<div class="eq"><span class="math-display">\[DD = q_{\mathrm{b}} + I_{\mathrm{ca}} + I_{\mathrm{cb}}\]</span></div>
+<p>式中 <i>I</i><sub>s</sub> 和 <i>I</i><sub>sr</sub> 分别为正向和反向传输饱和电流，<i>q</i><sub>3m</sub> 为软拐点因子。</p>
+<p>归一化基区电荷 <i>q</i><sub>b</sub> 由下式给出：</p>
+<div class="eq"><span class="math-display">\[q_{\mathrm{b}} = \frac{q_1}{2} + \sqrt{\left(\frac{q_1}{2}\right)^{2} + q_2}\]</span><span class="eqno">(6.71)</span></div>
+<p>式中</p>
+<div class="eq"><span class="math-display">\[q_1 = 1 - \frac{q_{\mathrm{je}}}{V_{\mathrm{AR}}} + \frac{q_{\mathrm{jc}}}{V_{\mathrm{AF}}}\]</span></div>
+<div class="eq"><span class="math-display">\[q_2 = \frac{I_{\mathrm{S}}}{I_{\mathrm{k}}}\left[\exp\left(\frac{qV_{\mathrm{bei}}}{\eta_{\mathrm{f}}kT}\right) - 1\right]\]</span></div>
+<p>式中 <i>V</i><sub>AF</sub> 和 <i>V</i><sub>AR</sub> 分别为正向和反向 Early 电压，<i>I</i><sub>k</sub> 为正向电流增益发生大电流跌落的拐点电流。</p>
+<p><i>I</i><sub>ca</sub> 和 <i>I</i><sub>cb</sub> 分别模拟基极—发射极结和基极—集电极结的异质结效应对集电极电流的影响：</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{ca}} = \frac{I_{\mathrm{s}}}{I_{\mathrm{sa}}}\left[\exp\left(\frac{qV_{\mathrm{bei}}}{\eta_{\mathrm{a}}kT}\right) - 1\right]\]</span><span class="eqno">(6.72)</span></div>
+<div class="eq"><span class="math-display">\[I_{\mathrm{cb}} = \frac{I_{\mathrm{s}}}{I_{\mathrm{sb}}}\left[\exp\left(\frac{qV_{\mathrm{bci}}}{\eta_{\mathrm{b}}kT}\right) - 1\right]\]</span><span class="eqno">(6.73)</span></div>
+<p><i>I</i><sub>sa</sub>、<i>I</i><sub>sb</sub>、<i>η</i><sub>a</sub> 和 <i>η</i><sub>b</sub> 为拟合因子。</p>
+<p>基极—发射极结总电流 <i>I</i><sub>be</sub> 由下式给出：</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{be}} = I_{\mathrm{bei}} + I_{\mathrm{bex}}\]</span><span class="eqno">(6.74)</span></div>
+<p>式中</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{bei}} = (1 - A_{\mathrm{BE}})I_{\mathrm{sh}}\left[\exp\left(\frac{qV_{\mathrm{bei}}}{\eta_{\mathrm{h}}kt}\right) - 1\right] + I_{\mathrm{se}}\left[\exp\left(\frac{qV_{\mathrm{bei}}}{\eta_{\mathrm{e}}kt}\right) - 1\right]\]</span></div>
+<div class="eq"><span class="math-display">\[I_{\mathrm{bex}} = A_{\mathrm{BE}}I_{\mathrm{sh}}\left[\exp\left(\frac{qV_{\mathrm{bex}}}{\eta_{\mathrm{h}}kt}\right) - 1\right] + I_{\mathrm{se}}\left[\exp\left(\frac{qV_{\mathrm{bex}}}{\eta_{\mathrm{e}}kt}\right) - 1\right]\]</span></div>
+<p><i>I</i><sub>sh</sub> 和 <i>η</i><sub>h</sub> 分别为理想基极—发射极泄漏饱和电流和发射系数；<i>I</i><sub>se</sub> 和 <i>η</i><sub>e</sub> 分别为非理想基极—发射极泄漏饱和电流和发射系数。<i>A</i><sub>BE</sub> 用作基极—发射极总电流的分配因子，用以分离外在分量与本征分量。</p>
+<p>基极—集电极结总电流 <i>I</i><sub>bc</sub> 由下式给出：</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{bc}} = I_{\mathrm{bci}} + I_{\mathrm{bcx}}\]</span><span class="eqno">(6.75)</span></div>
+<p>其中</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{bci}} = (1 - A_{\mathrm{BC}})I_{\mathrm{srh}}\left[\exp\left(\frac{qV_{\mathrm{bci}}}{\eta_{\mathrm{rh}}kt}\right) - 1\right] + I_{\mathrm{sc}}\left[\exp\left(\frac{qV_{\mathrm{bci}}}{\eta_{\mathrm{c}}kt}\right) - 1\right]\]</span></div>
+<div class="eq"><span class="math-display">\[I_{\mathrm{bcx}} = A_{\mathrm{BC}}I_{\mathrm{srh}}\left[\exp\left(\frac{qV_{\mathrm{bcx}}}{\eta_{\mathrm{rh}}kt}\right) - 1\right] + I_{\mathrm{sc}}\left[\exp\left(\frac{qV_{\mathrm{bcx}}}{\eta_{\mathrm{c}}kt}\right) - 1\right]\]</span></div>
+<p><i>I</i><sub>srh</sub> 和 <i>η</i><sub>rh</sub> 分别为理想基极—集电极泄漏饱和电流和发射系数；<i>I</i><sub>sc</sub> 和 <i>η</i><sub>c</sub> 分别为非理想基极—集电极泄漏饱和电流和发射系数。<i>A</i><sub>BC</sub> 用作基极—集电极总电流的分配因子，用以分离外在分量与本征分量。</p>
+<p>本征模型（虚线框内部分）如图 6.30 所示的更详细形式。我们有</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{BB}} = I_{\mathrm{bci}} + I_{\mathrm{bei}}\]</span><span class="eqno">(6.76)</span></div>
+<div class="eq"><span class="math-display">\[I_{\mathrm{CC}} = I_{\mathrm{CE}} - I_{\mathrm{bci}}\]</span><span class="eqno">(6.77)</span></div>
+<div class="eq"><span class="math-display">\[Q_{\mathrm{BB}} = Q_{\mathrm{bei}} + Q_{\mathrm{bci}}\]</span><span class="eqno">(6.78)</span></div>
+<div class="eq"><span class="math-display">\[Q_{\mathrm{CC}} = -Q_{\mathrm{bci}}\]</span><span class="eqno">(6.79)</span></div>
+<div class="eq"><span class="math-display">\[I_{\mathrm{B}} = I_{\mathrm{BB}} + \frac{dQ_{\mathrm{BB}}}{dt}\]</span><span class="eqno">(6.80)</span></div>
+<div class="eq"><span class="math-display">\[I_{\mathrm{C}} = I_{\mathrm{CC}} + \frac{dQ_{\mathrm{CC}}}{dt}\]</span><span class="eqno">(6.81)</span></div>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.30.png" alt="本征部分等效电路模型">
+  <div class="cap"><b>图 6.30</b> 本征部分的等效电路模型</div>
+</div>
+
+<p>本征模型的 <i>Y</i> 参数可表示为</p>
+<div class="eq"><span class="math-display">\[Y_{11} = \left.\frac{\partial I_{\mathrm{BB}}}{\partial V_{\mathrm{bei}}}\right|_{V_{\mathrm{cei}}} + j\omega\left.\frac{\partial Q_{\mathrm{BB}}}{\partial V_{\mathrm{bei}}}\right|_{V_{\mathrm{cei}}}\]</span><span class="eqno">(6.82)</span></div>
+<div class="eq"><span class="math-display">\[Y_{12} = \left.\frac{\partial I_{\mathrm{BB}}}{\partial V_{\mathrm{cei}}}\right|_{V_{\mathrm{bei}}} + j\omega\left.\frac{\partial Q_{\mathrm{BB}}}{\partial V_{\mathrm{cei}}}\right|_{V_{\mathrm{bei}}}\]</span><span class="eqno">(6.83)</span></div>
+<div class="eq"><span class="math-display">\[Y_{21} = \left.\frac{\partial I_{\mathrm{CC}}}{\partial V_{\mathrm{bei}}}\right|_{V_{\mathrm{cei}}} + j\omega\left.\frac{\partial Q_{\mathrm{CC}}}{\partial V_{\mathrm{bei}}}\right|_{V_{\mathrm{cei}}}\]</span><span class="eqno">(6.84)</span></div>
+<div class="eq"><span class="math-display">\[Y_{22} = \left.\frac{\partial I_{\mathrm{CC}}}{\partial V_{\mathrm{cei}}}\right|_{V_{\mathrm{bei}}} + j\omega\left.\frac{\partial Q_{\mathrm{CC}}}{\partial V_{\mathrm{cei}}}\right|_{V_{\mathrm{bei}}}\]</span><span class="eqno">(6.85)</span></div>
+<p>图 6.31 给出了相应的小信号模型；非线性与线性等效电路元件之间的关系由下式给出：</p>
+<div class="eq"><span class="math-display">\[r_{\mathrm{bei}} = \left(\frac{dI_{\mathrm{bei}}}{dV_{\mathrm{bei}}}\right)^{-1}\]</span><span class="eqno">(6.86)</span></div>
+<div class="eq"><span class="math-display">\[r_{\mathrm{bex}} = \left(\frac{dI_{\mathrm{bex}}}{dV_{\mathrm{bex}}}\right)^{-1}\]</span><span class="eqno">(6.87)</span></div>
+<div class="eq"><span class="math-display">\[r_{\mathrm{bci}} = \left(\frac{dI_{\mathrm{bci}}}{dV_{\mathrm{bci}}}\right)^{-1}\]</span><span class="eqno">(6.88)</span></div>
+<div class="eq"><span class="math-display">\[r_{\mathrm{bcx}} = \left(\frac{dI_{\mathrm{bcx}}}{dV_{\mathrm{bcx}}}\right)^{-1}\]</span><span class="eqno">(6.89)</span></div>
+<div class="eq"><span class="math-display">\[g_{\mathrm{m}} = \frac{\partial I_{\mathrm{CE}}}{\partial V_{\mathrm{bei}}}\]</span><span class="eqno">(6.90)</span></div>
+<div class="eq"><span class="math-display">\[r_{\mathrm{o}} = \left(\frac{\partial I_{\mathrm{CE}}}{\partial V_{\mathrm{cei}}}\right)^{-1}\]</span><span class="eqno">(6.91)</span></div>
+<div class="eq"><span class="math-display">\[C_{\mathrm{bei}} = \frac{\partial Q_{\mathrm{BB}}}{\partial V_{\mathrm{bei}}}\]</span><span class="eqno">(6.92)</span></div>
+<div class="eq"><span class="math-display">\[C_{\mathrm{bci}} = \frac{\partial Q_{\mathrm{BB}}}{\partial V_{\mathrm{bci}}}\]</span><span class="eqno">(6.93)</span></div>
+<div class="eq"><span class="math-display">\[C_{\mathrm{bex}} = \frac{\partial Q_{\mathrm{bex}}}{\partial V_{\mathrm{bex}}}\]</span><span class="eqno">(6.94)</span></div>
+<div class="eq"><span class="math-display">\[C_{\mathrm{bcx}} = \frac{\partial Q_{\mathrm{bcx}}}{\partial V_{\mathrm{bcx}}}\]</span><span class="eqno">(6.95)</span></div>
+<div class="eq"><span class="math-display">\[C_{\mathrm{o}} = \frac{\partial\left(Q_{\mathrm{BB}} + Q_{\mathrm{CC}}\right)}{\partial V_{\mathrm{cei}}}\]</span><span class="eqno">(6.96)</span></div>
+<div class="eq"><span class="math-display">\[\tau = \frac{C_{\mathrm{m}}}{g_{\mathrm{m}}}\]</span><span class="eqno">(6.97)</span></div>
+<div class="eq"><span class="math-display">\[C_{\mathrm{m}} = \frac{\partial Q_{\mathrm{BB}}}{\partial V_{\mathrm{cei}}} - \frac{\partial Q_{\mathrm{CC}}}{\partial V_{\mathrm{bei}}}\]</span><span class="eqno">(6.98)</span></div>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.31.png" alt="Agilent HBT 小信号模型">
+  <div class="cap"><b>图 6.31</b> Agilent HBT 小信号模型</div>
+</div>
+
+<h3>6.4.3 宏建模方法</h3>
+<p>在电子电路设计中，器件级宏建模的思想和应用十分普遍。例如，可以用若干理想集总元件和受控源来实现一个复杂的晶体管。宏建模的目标是获得器件或集成电路某一部分的电路模型，使其复杂度显著降低，从而缩短仿真时间、降低仿真成本。与晶体管级建模相比，宏建模有许多优点：由于复杂晶体管被简化为用数学方式表示其功能，仿真运行更快、更稳健，使用户能够在合理的仿真时间内完成器件级电路仿真；同时模型更加稳健，允许收敛判据上有一定灵活性，从而更容易适用于更多类型的电路。</p>
+<p>图 6.32 给出了一种基于 SGP 模型、增加两个附加电流源（产生电流 <i>I</i><sub>gen</sub> 和雪崩电流 <i>I</i><sub>av</sub>）的 HBT 宏模型[20]。集电结耗尽区中的产生电流作为集电极—基极偏压的函数可写为</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{gen}} = I_{\mathrm{geno}}\left(1 + \frac{V_{\mathrm{cb}}}{V_{\mathrm{bi}}}\right)^{1/2}\]</span><span class="eqno">(6.99)</span></div>
+<p>雪崩电流 <i>I</i><sub>av</sub> 用于模拟反偏集电结的雪崩倍增效应，可写为</p>
+<div class="eq"><span class="math-display">\[I_{\mathrm{av}} = I_{\mathrm{avo}}\left[\frac{\left(V_{\mathrm{cb}}/V_{\mathrm{cbo}}\right)^{n}}{1 - \left(V_{\mathrm{cb}}/V_{\mathrm{cbo}}\right)^{n}}\right]\]</span><span class="eqno">(6.100)</span></div>
+<p>式中 <i>V</i><sub>cbo</sub> 为集电结击穿电压，<i>I</i><sub>avo</sub>、<i>I</i><sub>geno</sub> 和 <i>n</i> 为拟合因子。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.32.png" alt="基于 SGP 模型的 HBT 宏模型">
+  <div class="cap"><b>图 6.32</b> 基于 SGP 模型的 HBT 宏模型</div>
+</div>
+
+<p>图 6.33 给出了一种基于 π 型模型的非线性 HBT 宏模型[28]。与商用模型（如 VBIC 和 Agilent 模型）相比，其拓扑非常简单，但集电极—发射极电流需要用较复杂的表达式描述。</p>
+
+<div class="figure">
+  <img src="ch6_figs/Figure_6.33.png" alt="基于 π 型模型的非线性 HBT 宏模型">
+  <div class="cap"><b>图 6.33</b> 基于 π 型模型的非线性 HBT 宏模型</div>
+</div>
+
+<h2 id="s6-5">6.5 小结</h2>
+<p>本章介绍了 HBT 常用的非线性模型（如 VBIC 模型和 Agilent 模型），它们由非线性电流模型和非线性电荷模型组成；同时讨论了热阻的等效电路模型及其确定方法。</p>
+
+<h2 id="s6-6">参考文献</h2>
+
+<ol class="refs">
+<li>Giannini, F. and Leuzzi, G. (2004) <i>Nonlinear Microwave Circuit Design</i>, John Wiley &amp; Sons Ltd, Hoboken.</li>
+<li>Maas, S.A. (2003) <i>Nonlinear Microwave and RF Circuits</i>, Artech House, Inc, Boston.</li>
+<li>Radmanesh, M.M. (2001) <i>Radio Frequency and Microwave Electronics</i>, Prentice Hall Inc, Upper Saddle River.</li>
+<li>McMacken, J., Nedeljkovic, S., Gering, J. and Halchin, D. (2008) HBT Modeling. <i>IEEE Microwave Magazine</i>, 9(2), 48–71.</li>
+<li>Oettinger, F.F., Blackbum, D.L. and Rubin, S. (1976) Thermal characterization of power transistors. <i>IEEE Transactions on Electron Devices</i>, 23(8), 831–838.</li>
+<li>Joy, R.C. and Schlig, E.S. (1970) Thermal properties of very fast transistors. <i>IEEE Electron Devices</i>, 17(8), 586–594.</li>
+<li>Liu, W. (1998) <i>Handbook of III-V Heterojunction Bipolar Transistors</i>, Wiley-Interscience, New York.</li>
+<li>Sood, A.K. (1993) On the edge-thermal resistance. <i>IEEE Micro</i>, 13(4), 52–58.</li>
+<li>Gao, G.-B., Wang, M.-Z., Gui, X. and Morkoc, H. (1989) Thermal design studies of high-power heterojunction bipolar transistors. <i>IEEE Transactions on Electron Devices</i>, 36(5), 854–863.</li>
+<li>Liou, J.J., Liou, L.L. and Huang, C.I. (1994) Analytical model for the GaAs/AlGaAs multiemitter finger HBT including self-heating and thermal coupling effects. <i>IEE Proceedings—Circuits Devices Systems</i>, 141(6), 469–475.</li>
+<li>Schaefer, B. and Dunn, M. (1996) Pulsed measurements and modeling for electro-thermal effects. <i>Proceedings of the 1996 Bipolar/BiCMOS Circuits and Technology Meeting</i>, pp. 110–117.</li>
+<li>Liu, W. and Yuksel, A. (1995) Measurement of junction temperature of Al/GaAs/GaAs heterojunction bipolar transistors operating at large power densities. <i>IEEE Transactions on Electron Devices</i>, 42, 358–360.</li>
+<li>Dawson, D.E., Gupta, A.K. and Salib, M.L. (1992) CW measurement of HBT thermal resistance. <i>IEEE Transactions on Electron Devices</i>, 39, 2235–2239.</li>
+<li>Bovolon, N., Baureis, P., Müller, J.-E. et al. (1998) A simple method for the thermal resistance measurement of GaAs/AlGaAs heterojunction bipolar transistors. <i>IEEE Transactions on Electron Devices</i>, 45, 1846–1848.</li>
+<li>Marsh, S.P. (2000) Direct extraction technique to derive the junction temperature of HBT's under high self-heating bias conditions. <i>IEEE Transactions on Electron Devices</i>, 47(2), 288–291.</li>
+<li>Menozzi, R., Barrett, J. and Ersland, P. (2005) A new method to extract HBT thermal resistance and its temperature and power dependence. <i>IEEE Transactions on Device and Materials Reliability</i>, 5(3), 595–601.</li>
+<li>Gummel, H.K. and Poon, H.C. (1970) An integrated charge control model of bipolar transistors. <i>Bell System Technical Journal</i>, 49(5), 827–850.</li>
+<li>Antognetti, P. and Massobrio, G. (1993) <i>Semiconductor Device Modeling with SPICE</i>, 2nd edn, McGraw-Hill, New York.</li>
+<li>Grossman, P.C. and Choma, J., Jr (1992) Large signal modeling of HBTs including self-heating and transit time effects. <i>IEEE Transactions on Microwave Theory and Techniques</i>, 40(3), 449–464.</li>
+<li>Dikmen, C.T., Dogan, N.S. and Osman, M.A. (1994) DC modeling and characterization of GaAs/AlGaAs heterojunction bipolar transistors for high-temperature applications. <i>IEEE Journal of Solid-State Circuits</i>, 29(2), 108–116.</li>
+<li>Hafizi, M.E., Crowell, C. and Grupen, M.E. (1990) The DC characteristics of GaAs/AlGaAs heterojunction bipolar transistors with application to device modeling. <i>IEEE Transactions on Electron Devices</i>, 37(10), 2121–2129.</li>
+<li>McAndrew, C.C., Seitchik, J.A., Bowers, D.F. et al. (1996) VBIC95, the vertical bipolar inter-company model. <i>IEEE Journal of Solid-State Circuits</i>, 31(10), 1476–1483.</li>
+<li>de Graaff, H.C., Kloosterman, W.J., Geelen, J.A.M. and Koolen, M.C.A.M. (1989) Experience with the new compact MEXTRAM model for bipolar transistors. <i>Proceedings of IEEE Bipolar Circuits Technology Meeting</i>, 70–73.</li>
+<li>Stubing, H. and Rein, H.-M. (1987) A compact physical large-signal model for high-speed bipolar transistors at high current densities: Part I: One-dimensional model. <i>IEEE Transactions on Electron Devices</i>, 34(8), 1741–1751.</li>
+<li>Rein, H.-M. and Schroter, M. (1987) A compact physical large-signal model for high-speed bipolar transistors at high current densities: Part II: Two-dimensional model and experimental results. <i>IEEE Transactions on Electron Devices</i>, 34(8), 1752–1761.</li>
+<li>HBT Model Equations, http://hbt.ucsd.edu (accessed January 2, 2015).</li>
+<li>Agilent Heterojunction Bipolar Transistor Model, Agilent Advanced Design System Doc. 2006A, "Nonlinear Devices," Chapter 2, pp. 4–33.</li>
+<li>Rudolph, M., Doerner, R., Beilenhoff, K. and Heymann, P. (2000) Scalable GaInP/GaAs HBT large-signal model. <i>IEEE Transactions on Microwave Theory and Techniques</i>, 48(12), 2370–2376.</li>
+</ol>
+
+</body>
+</html>

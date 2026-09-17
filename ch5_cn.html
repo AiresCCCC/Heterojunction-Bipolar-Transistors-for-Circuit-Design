@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: true
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+  },
+  chtml: {
+    scale: 1
+  },
+  startup: {
+    pageReady: () => MathJax.startup.defaultPageReady().then(() => {
+      const updateFormulaOverflow = () => {
+        document.querySelectorAll('.math-display').forEach((formula) => {
+          const math = formula.querySelector('mjx-math') || formula.querySelector('mjx-container');
+          const mathWidth = math ? math.getBoundingClientRect().width : 0;
+          formula.classList.toggle('math-overflow', mathWidth > formula.clientWidth + 4);
+        });
+      };
+      updateFormulaOverflow();
+      if (window.ResizeObserver) {
+        const observer = new ResizeObserver(updateFormulaOverflow);
+        document.querySelectorAll('.math-display').forEach((formula) => observer.observe(formula));
+      }
+    })
+  }
+};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第5章 HBT 小信号建模与参数提取 — HBT 中文译本</title>
+<style>
+/* ===== HBT 中文译本 · 统一标准样式 ===== */
+  :root {
+    --ink: #1a1a1a; --muted: #5a6470; --accent: #2a4d8f; --rule: #d8dce2;
+    --bg: #ffffff; --soft: #f7f8fa;
+    --serif: "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", "STSong", "SimSun", Georgia, "Times New Roman", serif;
+    --sans: "Source Han Sans SC", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", "Heiti SC", Helvetica, Arial, sans-serif;
+    --mono: "Cambria Math", "STIX Two Math", "Latin Modern Math", "Times New Roman", serif;
+  }
+  html, body { background: var(--bg); color: var(--ink); }
+  body { font-family: var(--serif); max-width: 880px; margin: 0 auto;
+         padding: 46px 26px 64px; line-height: 1.78; }
+  header { border-bottom: 1px solid var(--rule); padding-bottom: 18px; margin-bottom: 30px; }
+  .kicker { font-family: var(--sans); font-size: 0.78em; letter-spacing: 0.14em;
+            text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: var(--serif); font-size: 1.7em; line-height: 1.4;
+       margin: 12px 0 6px; font-weight: 600; }
+  .ch-num { font-family: var(--sans); color: var(--accent); font-size: 0.85em;
+            letter-spacing: 0.08em; }
+  .credit { font-family: var(--sans); font-size: 0.78em; color: var(--muted);
+            margin-top: 18px; line-height: 1.55; }
+  h2 { font-family: var(--serif); font-size: 1.32em; margin: 36px 0 14px;
+       border-bottom: 1px solid var(--rule); padding-bottom: 6px; font-weight: 600; }
+  h3 { font-family: var(--serif); font-size: 1.12em; margin: 26px 0 10px; font-weight: 600; }
+  h4 { font-family: var(--serif); font-size: 1.0em; margin: 22px 0 8px;
+       font-weight: 600; color: #222; }
+  p { margin: 0 0 12px; text-align: justify; }
+  ul { margin: 6px 0 14px; padding-left: 22px; }
+  ol { margin: 6px 0 14px; padding-left: 24px; }
+  li { margin: 2px 0; }
+  .figure { margin: 22px auto; text-align: center; }
+  .figure img { max-width: 100%; height: auto; border: 1px solid var(--rule);
+                border-radius: 2px; background: #fff; }
+  .figure .cap { font-family: var(--sans); font-size: 0.86em; color: var(--muted);
+                 margin-top: 8px; line-height: 1.5; }
+  .eq { position: relative; display: flex; align-items: center;
+        justify-content: center; margin: 10px 0; }
+  /* 公式编号：绝对定位贴正文右边界，垂直居中 */
+  .eq .eqno { position: absolute; right: 0; top: 50%;
+              transform: translateY(-50%); z-index: 2;
+              padding-left: .5em; background: var(--bg);
+              font-family: var(--sans);
+              font-size: 0.88em; color: var(--muted); white-space: nowrap; }
+  /* 公式本体留出编号通道，避免宽公式与右对齐编号重叠 */
+  .eq .math-display { display: block; flex: 0 1 auto; width: max-content; min-width: 0;
+                       max-width: calc(100% - 7.5em); overflow-x: hidden; overflow-y: hidden;
+                       padding: 2px 0; box-sizing: border-box; }
+  .eq .eqtag { font-family: var(--sans); font-size: 0.88em;
+               color: var(--muted); margin-left: 10px; white-space: nowrap; }
+  .eqdef { display: flex; align-items: center; gap: 18px; margin: 6px 0 12px; }
+  .eqdef .math-display { flex: 0 1 auto; width: max-content; max-width: 46%;
+                         overflow-x: hidden; overflow-y: hidden; padding: 2px 0;
+                         box-sizing: border-box; }
+  .math-display.math-overflow { overflow-x: auto; }
+  .eqdef .meaning { flex: 1; font-size: 0.95em; line-height: 1.4; color: #222; }
+  .src { font-family: var(--sans); font-size: 0.76em; color: var(--muted);
+         margin-top: 4px; }
+  ol.refs { font-family: var(--sans); font-size: 0.85em; line-height: 1.6;
+            color: #333; padding-left: 26px; }
+  ol.refs li { margin: 4px 0; }
+  @media (max-width: 700px) {
+    body { padding: 24px 16px 40px; }
+    .eq .eqno { position: static; transform: none; margin-left: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="kicker">HBT for Circuit Design · 中文翻译节选</div>
+  <h1><span class="ch-num">第 5 章</span><br>HBT 小信号建模与<br>参数提取</h1>
+  <p class="credit">
+    译自 <i>Heterojunction Bipolar Transistors for Circuit Design: Microwave Modeling
+    and Parameter Extraction</i>, First Edition. Jianjun Gao.<br>
+    &copy; 2015 Higher Education Press. All rights reserved. Published 2015 by John Wiley &amp; Sons Singapore Pte Ltd.<br>
+    本译文仅用于学术研究目的，版权归原作者及出版方所有。
+  </p>
+</header>
+
+<p>在微波晶体管的高频表征中，人们常用小信号模型以相对简单的方程来参数化复杂的行为。小信号模型最好设计成其模型参数代表晶体管中某种物理量，这是迈向建立大信号模型的关键一步。它可以为优化测试结构版图、利用等效电路对完整结构进行仿真，以及研究器件参数对给定去嵌入流程的敏感性提供重要信息。用集总元件电路模型来描述双极晶体管这类物理结构存在固有的局限，但这类小信号模型在很宽的频率范围内描述晶体管行为却极为有效。同时，许多模型参数可以直接、明确地与物理量相关联，这使得表征/分析与晶体管的设计/制造之间能够形成有意义的反馈。该技术中的一个关键问题是建立物理上可接受的小信号 HBT 模型与精确的参数提取方法，它们对于设计低噪声放大器等线性射频 IC 至关重要。此外，由于在工艺集成的开发周期中，用于优化射频器件性能的器件特性数据可以通过提取小信号模型参数来获得，因此小信号建模正变得越来越重要。由于 HBT 器件的基本工作机制与 BJT 非常相似，小信号建模可以在 BJT 小信号模型的基础上考虑异质结的影响来完成。由于模型参数数量增加，其参数提取方法比 BJT 更为复杂。</p>
+
+<p>本章将介绍 HBT 的小信号建模与参数提取技术，并以一只 InP HBT 器件为例加以说明。参数提取流程包括焊盘（pad）电容、外部电感、外部电阻以及本征元件的提取。</p>
+
+<h2 id="s5-1">5.1 小信号电路模型</h2>
+
+<p>两种众所周知的基本双极晶体管模型是 T 型模型与 π 型模型；需要指出的是，T 型与 π 型拓扑都是人为构造的晶体管模型，只要模型参数的频率依赖性得到正确建模，它们可以做到完全等效。本节将对 T 型拓扑与电路拓扑进行直接比较。</p>
+
+<h3>5.1.1 焊盘结构</h3>
+
+<p>对毫米波电路与系统日益增长的需求，带来了直接在晶圆上（即在芯片级）测量元件的需要，以避开与封装、连接器及电缆相关的测量不确定性。对器件的接入通常通过共面波导（CPW）探针实现。商用探针可覆盖很宽的频率范围，有单针尖与多针尖两种配置可供选用。通过在直至探针针尖的整个路径上保持传输线阻抗，并采用接地—信号—接地（GSG）CPW 引出（见图 5.1），射频信号能够以最小的衰减和出色的阻抗控制被传送到晶圆上。在较低频率下可以采用更宽的探针间距（探针接触点中心到中心的间距）与单接地连接，但性能会有所下降。具有灵活信号和/或接地接触的可变间距配置对网络分析仪测量并无用处，因为校准要求过渡行为具有可重复性。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.1.png" alt="GSG 共面探针">
+  <div class="cap"><b>图 5.1</b> GSG 共面探针</div>
+</div>
+
+<p>在在片测量中，需要用于探针接触的 GSG CPW 焊盘结构。图 5.2a 给出了典型的焊盘图形，它由一条信号线与两条接地线组成；相应的等效电路模型如图 5.2b 所示，其中 <i>L</i><sub>b</sub>、<i>L</i><sub>c</sub> 与 <i>L</i><sub>e</sub> 分别表示基极、集电极与发射极器件连接线的电感；<i>C</i><sub>pb</sub>、<i>C</i><sub>pc</sub> 与 <i>C</i><sub>pbc</sub> 分别表示基极焊盘电容、集电极焊盘电容以及基极与集电极之间的隔离电容；<i>R</i><sub>bx</sub> 为外部基极电阻；<i>R</i><sub>c</sub> 与 <i>R</i><sub>e</sub> 为集电极与发射极电阻。</p>
+
+<p>完整器件模型的 <i>Y</i> 矩阵可写为</p>
+
+<div class="eq"><span class="math-display">\[Y = Y_{pad} + (Z_{RL} + Z_D)^{-1}\]</span><span class="eqno">(5.1)</span></div>
+
+<p>其中 <i>Z</i><sub>D</sub> 为本征部分的阻抗参数，<i>Y</i><sub>pad</sub> 表示焊盘电容部分：</p>
+
+<div class="eq"><span class="math-display">\[Y_{pad} = \begin{bmatrix} j\omega(C_{pb} + C_{pbc}) &amp; -j\omega C_{pbc} \\ -j\omega C_{pbc} &amp; j\omega(C_{pc} + C_{pbc}) \end{bmatrix}\]</span><span class="eqno">(5.2)</span></div>
+
+<p><i>Z</i><sub>RL</sub> 表示寄生电阻与电感部分：</p>
+
+<div class="eq"><span class="math-display">\[Z_{RL} = \begin{bmatrix} R_{bx} + R_e + j\omega(L_b + L_e) &amp; R_e + j\omega L_e \\ R_e + j\omega L_e &amp; R_c + R_e + j\omega(L_c + L_e) \end{bmatrix}\]</span><span class="eqno">(5.3)</span></div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.2.png" alt="焊盘结构与等效电路模型">
+  <div class="cap"><b>图 5.2</b> (a) 焊盘结构与 (b) 等效电路模型</div>
+</div>
+
+<h3>5.1.2 T 型电路模型</h3>
+
+<p>常规的 T 型混合小信号等效电路模型如图 5.3 所示。T 型拓扑与器件物理直接相关，便于检验所提取参数的物理合理性，其中 <i>C</i><sub>ex</sub> 与 <i>C</i><sub>bc</sub> 分别为外部与本征基极—集电极电容，<i>C</i><sub>be</sub> 为基极—发射极电容，<i>R</i><sub>bi</sub> 为本征基极电阻。</p>
+
+<p>采用单极点近似，输运因子 <i>α</i> 可写为</p>
+
+<div class="eq"><span class="math-display">\[\alpha = \frac{\alpha_o}{1 + j\omega/\omega_\alpha}\,e^{-j\omega\tau_T}\]</span><span class="eqno">(5.4)</span></div>
+
+<p>其中 <i>α</i><sub>o</sub> 表示低频下的本征电流增益，<i>ω</i><sub>α</sub> 为 3 dB 滚降频率，<i>τ</i><sub>T</sub> 为渡越时间延迟。</p>
+
+<p>需要注意的是，本模型中忽略了外部基极—集电极电阻 <i>R</i><sub>ex</sub> 与本征基极—集电极电阻 <i>R</i><sub>bc</sub>，这是因为 <i>R</i><sub>ex</sub> 与 <i>R</i><sub>bc</sub> 的阻值很大，只要我们只关心正向工作，它们对频率响应的影响并不大。</p>
+
+<p>图 5.3 中虚线框内的 <i>Y</i> 矩阵可表示为</p>
+
+<div class="eq"><span class="math-display">\[Y_{11} = Y_{BC} + (1-\alpha)Y_{BE}\]</span><span class="eqno">(5.5)</span></div>
+<div class="eq"><span class="math-display">\[Y_{12} = -Y_{BC}\]</span><span class="eqno">(5.6)</span></div>
+<div class="eq"><span class="math-display">\[Y_{21} = \alpha Y_{BE} - Y_{BC}\]</span><span class="eqno">(5.7)</span></div>
+<div class="eq"><span class="math-display">\[Y_{22} = Y_{BC}\]</span><span class="eqno">(5.8)</span></div>
+
+<p>在串联接入本征基极电阻 <i>R</i><sub>bi</sub> 之后，有</p>
+
+<div class="eq"><span class="math-display">\[Y&#39;_{11} = \frac{Y_{11}}{1 + R_{bi}Y_{11}}\]</span><span class="eqno">(5.9)</span></div>
+<div class="eq"><span class="math-display">\[Y&#39;_{12} = \frac{Y_{12}}{1 + R_{bi}Y_{11}}\]</span><span class="eqno">(5.10)</span></div>
+<div class="eq"><span class="math-display">\[Y&#39;_{21} = \frac{Y_{21}}{1 + R_{bi}Y_{11}}\]</span><span class="eqno">(5.11)</span></div>
+<div class="eq"><span class="math-display">\[Y&#39;_{22} = \frac{Y_{22}}{1 + R_{bi}Y_{11}}\]</span><span class="eqno">(5.12)</span></div>
+
+<p>在并联接入电容 <i>C</i><sub>ex</sub> 之后，可得到整个本征网络的 <i>Y</i> 矩阵：</p>
+
+<div class="eq"><span class="math-display">\[Y_{11} = \frac{Y_{EX} + Y_{BC} + (1-\alpha)Y_{BE}}{A}\]</span><span class="eqno">(5.13)</span></div>
+<div class="eq"><span class="math-display">\[Y_{21} = \frac{-Y_{EX} + (-Y_{BC} + \alpha Y_{BE})}{A}\]</span><span class="eqno">(5.14)</span></div>
+<div class="eq"><span class="math-display">\[Y_{12} = \frac{-Y_{EX} + (-Y_{BC})}{A}\]</span><span class="eqno">(5.15)</span></div>
+<div class="eq"><span class="math-display">\[Y_{22} = \frac{Y_{EX} + Y_{BC}(1 + Y_{BE}R_{bi})}{A}\]</span><span class="eqno">(5.16)</span></div>
+
+<p>其中</p>
+
+<div class="eq"><span class="math-display">\[A = 1 + R_{bi}[Y_{BC} + (1-\alpha)Y_{BE}],\quad Y_{BE} = \frac{1}{R_{be}} + j\omega C_{be},\quad Y_{BC} = j\omega C_{bc},\quad Y_{EX} = j\omega C_{ex}\]</span></div>
+
+<p>整个小信号等效电路的开路 <i>Z</i> 参数可表示为 [1]：</p>
+
+<div class="eq"><span class="math-display">\[Z_{11} = \frac{(1-\alpha)(Z_{BC} + Z_{EX})R_{bi}}{Z_{BC} + Z_{EX} + R_{bi}} + Z_{BE} + Z_E + Z_B\]</span><span class="eqno">(5.17)</span></div>
+<div class="eq"><span class="math-display">\[Z_{12} = \frac{(1-\alpha)Z_{BC}R_{bi}}{Z_{BC} + Z_{EX} + R_{bi}} + Z_{BE} + Z_E\]</span><span class="eqno">(5.18)</span></div>
+<div class="eq"><span class="math-display">\[Z_{21} = \frac{-\alpha Z_{EX} + (1-\alpha)R_{bi}Z_{BC}}{Z_{BC} + Z_{EX} + R_{bi}} + Z_{BE} + Z_E\]</span><span class="eqno">(5.19)</span></div>
+<div class="eq"><span class="math-display">\[Z_{22} = \frac{(1-\alpha)Z_{BC}(Z_{EX} + R_{bi})}{Z_{BC} + Z_{EX} + R_{bi}} + Z_{BE} + Z_E + Z_C\]</span><span class="eqno">(5.20)</span></div>
+
+<p>其中</p>
+
+<div class="eq"><span class="math-display">\[Z_B = R_{bx} + j\omega L_b,\quad Z_C = R_c + j\omega L_c,\quad Z_E = R_e + j\omega L_e,\quad Z_{BC} = \frac{1}{j\omega C_{bc}},\quad Z_{EX} = \frac{1}{j\omega C_{ex}},\quad Z_{BE} = \frac{R_{BE}}{1 + j\omega R_{BE}C_{BE}}\]</span></div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.3.png" alt="本征 HBT T 型模型">
+  <div class="cap"><b>图 5.3</b> 本征 HBT T 型模型</div>
+</div>
+
+<h3>5.1.3 π 型电路模型</h3>
+
+<p>实际上，混合 T 型小信号等效电路模型比 π 型电路模型更为常用。T 型模型之所以具有吸引力，是因为所有模型参数都可以直接与器件物理相联系，并且该模型在直至毫米波频率都能很好地拟合 <i>S</i> 参数数据。已有少数论文采用混合 π 型拓扑来研究 HBT 器件的小信号性能。由于可追溯到硅双极晶体管发展的历史原因，大多数双极电路设计者使用 Gummel–Poon 模型。该模型是大多数电路仿真器（如 SPICE）中可用的标准大信号双极模型。因此，对于需要大信号建模的设计（如振荡器、功率放大器与混频器），设计者必须使用 Gummel–Poon 模型。遗憾的是，Gummel–Poon 模型在小信号条件下退化为混合 π 型拓扑。因此，保持与标准 SPICE Gummel–Poon 模型的向后兼容性是很有吸引力的，这就要求紧凑型大信号模型以 π 型拓扑来表述。</p>
+
+<p>图 5.4 给出了本征 HBT π 型模型：(i) <i>g</i><sub>m</sub> 模式与 (ii) <i>β</i> 模式。<i>g</i><sub>m</sub> 与 <i>β</i> 之间的关系为 <i>β</i> = <i>g</i><sub>m</sub><i>r</i><sub>π</sub>，且 <i>g</i><sub>m</sub> = <i>g</i><sub>mo</sub>exp(−j<i>ωτ</i><sub>π</sub>)。可以看出，HBT π 型模型与常规的 FET 小信号等效电路模型相似。其输入阻抗为 <i>Z</i><sub>π</sub> = <i>R</i><sub>π</sub> + j<i>ωC</i><sub>π</sub>，反馈网络由 <i>R</i><sub>μ</sub> 与 <i>C</i><sub>μ</sub> 构成。</p>
+
+<p>图 5.3 中虚线框内的 <i>Y</i> 矩阵可表示为</p>
+
+<div class="eq"><span class="math-display">\[Y_{11} = \frac{1}{r_\pi} + j\omega(C_\pi + C_\mu)\]</span><span class="eqno">(5.21)</span></div>
+<div class="eq"><span class="math-display">\[Y_{12} = -j\omega C_\mu\]</span><span class="eqno">(5.22)</span></div>
+<div class="eq"><span class="math-display">\[Y_{21} = g_{mo}e^{-j\omega\tau_\pi} - j\omega C_\mu\]</span><span class="eqno">(5.23)</span></div>
+<div class="eq"><span class="math-display">\[Y_{22} = \frac{1}{r_o} + j\omega C_\mu\]</span><span class="eqno">(5.24)</span></div>
+
+<p>其中 <i>g</i><sub>mo</sub> 为直流跨导，<i>τ</i><sub>π</sub> 为时间延迟。</p>
+
+<p>在加入 <i>R</i><sub>bi</sub> 与 <i>C</i><sub>ex</sub> 之后，可得到整个本征网络的 <i>Y</i> 矩阵：</p>
+
+<div class="eq"><span class="math-display">\[Y_{11} = \frac{1 + j\omega r_\pi(C_\pi + C_\mu)}{r_\pi + R_{bi} + j\omega R_{bi}r_\pi(C_\pi + C_\mu)} + j\omega C_{ex}\]</span><span class="eqno">(5.25)</span></div>
+<div class="eq"><span class="math-display">\[Y_{12} = \frac{-j\omega r_\pi C_\mu}{r_\pi + R_{bi} + j\omega R_{bi}r_\pi(C_\pi + C_\mu)} - j\omega C_{ex}\]</span><span class="eqno">(5.26)</span></div>
+<div class="eq"><span class="math-display">\[Y_{21} = \frac{g_m r_\pi e^{-j\omega\tau_\pi} - j\omega r_\pi C_\mu}{r_\pi + R_{bi} + j\omega R_{bi}r_\pi(C_\pi + C_\mu)} - j\omega C_{ex}\]</span><span class="eqno">(5.27)</span></div>
+<div class="eq"><span class="math-display">\[Y_{22} = \frac{r_\pi r_o + j\omega r_\pi C_\mu}{r_\pi + R_{bi} + j\omega R_{bi}r_\pi(C_\pi + C_\mu)} + j\omega C_{ex}\]</span><span class="eqno">(5.28)</span></div>
+
+<p>由图 5.3 与图 5.4 可以看出，外部等效电路元件 <i>C</i><sub>ex</sub> 与 <i>R</i><sub>bi</sub> 在两种拓扑中是相同的，因此它们具有相同的值。其余的本征参数可以相互转换 [2–7]：</p>
+
+<div class="eq"><span class="math-display">\[g_{mo} = \frac{\alpha_o}{R_{be}}\frac{\sqrt{1 + (\omega R_{be}C_{be})^{2}}}{1 + (\omega/\omega_\alpha)^{2}}\]</span><span class="eqno">(5.29)</span></div>
+<div class="eq"><span class="math-display">\[\tau_\pi = \tau_T + \frac{1}{\omega}\left[\tan^{-1}\!\left(\frac{\omega}{\omega_\alpha}\right) - \tan^{-1}(\omega R_{be}C_{be})\right]\]</span><span class="eqno">(5.30)</span></div>
+<div class="eq"><span class="math-display">\[C_\pi = C_{be} + g_{mo}\frac{\sin(\omega\tau_\pi)}{\omega}\]</span><span class="eqno">(5.31)</span></div>
+<div class="eq"><span class="math-display">\[R_\pi = \frac{R_{be}}{1 - g_{mo}R_{be}\cos(\omega\tau_\pi)}\]</span><span class="eqno">(5.32)</span></div>
+
+<p>由此可见，两种电路拓扑之间存在一一对应关系。然而，π 模型的参数具有频率依赖性，这一点在高频下变得显著。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.4.png" alt="本征 HBT π 型模型">
+  <div class="cap"><b>图 5.4</b> 本征 HBT π 型模型：(a) <i>g</i><sub>m</sub> 模式与 (b) <i>β</i> 模式</div>
+</div>
+
+<h3>5.1.4 单向功率增益</h3>
+
+<p>1954 年，Mason 希望找到一个用于比较晶体管的品质因数，这使他发现线性二端口器件的单向功率增益是一个不变量品质因数。Mason 不变量（或称 U）是唯一在无损、互易嵌入下保持不变的器件特性。换言之，U 可用作品质因数来比较任何三端有源器件。例如，生产晶体管的工厂可以计算其所生产晶体管的 U，并将其质量与市场上的其他晶体管进行比较。此外，U 还可用作有源性的指示器：若 U 大于 1，则该二端口器件是有源的；否则该器件是无源的。单向功率增益 U（也称为 Mason 增益 U）之所以可用作品质因数，是因为它是理想网络匹配情形下的结果。量 U 可辨识为图 5.5 所示单向结构的资用功率增益。给定线性二端口的单向化，是将该器件嵌入如图 5.5 所示的嵌入网络之中的过程，使得嵌入后的器件不存在从输出端口到输入端口的反向信号传输，即 <i>Z</i><sub>12</sub> = 0，其中 <i>Z</i> 为变换后器件（即器件与嵌入网络的组合）的开路阻抗矩阵，定义于嵌入网络的外部端口。通常，量 U 已被用于预测化合物 FET 与双极晶体管的高频性能。</p>
+
+<p>Mason 增益 U 的一般表达式被推导出来，并以网络的线性二端口 <i>H</i> 参数表示为 [8–10]：</p>
+
+<div class="eq"><span class="math-display">\[U = \frac{|H_{21} + H_{12}|^{2}}{4\,\mathrm{Re}(H_{11})\,\mathrm{Re}(H_{22}) - \mathrm{Im}(H_{12})\,\mathrm{Im}(H_{21})}\]</span><span class="eqno">(5.33)</span></div>
+
+<p>当以二端口的阻抗参数表示时，U 的形式保持不变：</p>
+
+<div class="eq"><span class="math-display">\[U = \frac{|Z_{21} - Z_{12}|^{2}}{4\,\mathrm{Re}(Z_{11})\,\mathrm{Re}(Z_{22}) - \mathrm{Re}(Z_{12})\,\mathrm{Re}(Z_{21})}\]</span><span class="eqno">(5.34)</span></div>
+
+<p>当以二端口的导纳参数表示时，U 的形式保持不变：</p>
+
+<div class="eq"><span class="math-display">\[U = \frac{|Y_{21} - Y_{12}|^{2}}{4\,\mathrm{Re}(Y_{11})\,\mathrm{Re}(Y_{22}) - \mathrm{Re}(Y_{12})\,\mathrm{Re}(Y_{21})}\]</span><span class="eqno">(5.35)</span></div>
+
+<p>用散射参数矩阵 <i>S</i> 表示的 U 的表达式，可通过将恒等式代入 <i>Z</i> 矩阵得到：</p>
+
+<div class="eq"><span class="math-display">\[U = \frac{\left|\dfrac{S_{21}}{S_{12}} - 1\right|^{2}}{2k\left|\dfrac{S_{21}}{S_{12}}\right| - 2\,\mathrm{Re}\!\left(\dfrac{S_{21}}{S_{12}}\right)}\]</span><span class="eqno">(5.36)</span></div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.5.png" alt="Mason 增益的条件">
+  <div class="cap"><b>图 5.5</b> Mason 增益的条件（嵌入线性无损互易四端口之内）</div>
+</div>
+
+<p>其中 <i>k</i> 为稳定因子，可表示为</p>
+
+<div class="eq"><span class="math-display">\[k = \frac{1 - |S_{11}|^{2} - |S_{22}|^{2} + |\Delta|^{2}}{2|S_{12}S_{21}|}\]</span><span class="eqno">(5.37)</span></div>
+
+<p>其中</p>
+
+<div class="eq"><span class="math-display">\[\Delta = S_{11}S_{22} - S_{12}S_{21}\]</span></div>
+
+<p>需要注意的是，<i>k</i> &gt; 1 与 <i>Δ</i> &lt; 1 是无条件稳定的两个充分必要条件。</p>
+
+<h3>5.1.5 <i>f</i><sub>T</sub> 与 <i>f</i><sub>max</sub></h3>
+
+<p>晶体管有两个最重要的品质因数：一个是截止频率 <i>f</i><sub>T</sub>，另一个是最高振荡频率 <i>f</i><sub>max</sub>。截止频率 <i>f</i><sub>T</sub> 定义为器件具有单位电流增益时的频率；最大资用增益（MAG）为 1 时所对应的频率则标志着最高工作频率 <i>f</i><sub>max</sub>。</p>
+
+<p>输出端口短路时的正向电流增益 <i>h</i><sub>21</sub> 由下式给出</p>
+
+<div class="eq"><span class="math-display">\[h_{21} = \frac{Y_{21}}{Y_{11}}\]</span><span class="eqno">(5.38)</span></div>
+
+<p>忽略所有寄生参数，电流增益 <i>h</i><sub>21</sub> 可重写为</p>
+
+<div class="eq"><span class="math-display">\[h_{21} = \frac{Y_{21}}{Y_{11}} \approx \frac{g_{mo}}{2\pi f(C_\pi + C_\mu + C_{ex})}\]</span><span class="eqno">(5.39)</span></div>
+
+<p><i>f</i><sub>T</sub> 定义为 <i>h</i><sub>21</sub> = 1 时对应的点；因此，<i>f</i><sub>T</sub> 为</p>
+
+<div class="eq"><span class="math-display">\[f_T = \frac{g_{mo}}{2\pi(C_\pi + C_\mu + C_{ex})}\]</span><span class="eqno">(5.40)</span></div>
+
+<p>如果晶体管是无条件稳定的（即 <i>k</i> &gt; 1），则 MAG 可表示为如下形式 [11]：</p>
+
+<div class="eq"><span class="math-display">\[G_{a,\max} = \left|\frac{S_{21}}{S_{12}}\right|\left(k - \sqrt{k^{2} - 1}\right)\]</span><span class="eqno">(5.41)</span></div>
+
+<p>如果器件只是条件稳定的，则 MAG 不能给出有意义的结果，因为当 <i>k</i> &lt; 1 时源端与负载端无法同时实现共轭匹配。在这种情况下，一个有用的品质因数是最大稳定增益，它定义为 <i>k</i> = 1 时的 MAG：</p>
+
+<div class="eq"><span class="math-display">\[G_{MSG} = G_{a,\max}|_{k=1} = \left|\frac{S_{21}}{S_{12}}\right|\]</span><span class="eqno">(5.42)</span></div>
+
+<p>最大稳定增益易于计算，为计算各种器件在稳定工作条件下的增益提供了便捷的途径。</p>
+
+<p><i>f</i><sub>max</sub> 定义为 MAG 为 1 时对应的点；因此，<i>f</i><sub>max</sub> 由下式给出 [12, 13]：</p>
+
+<div class="eq"><span class="math-display">\[f_{\max} = \frac{f_T}{8\pi R_{bi}C_{bc}}\]</span><span class="eqno">(5.43)</span></div>
+
+<h2 id="s5-2">5.2 HBT 器件结构</h2>
+
+<p>本工作中使用的 InP HBT 是采用气态源分子束外延（GSMBE）技术，在商用供应商提供的半绝缘（100）InP 衬底上生长而成的。Be 与 Si 分别用作 p 型与 n 型掺杂剂。InP/InGaAs/InP DHBT 的详细层结构如表 5.1 所示，图 5.6 给出了其版图 [14, 15]。该结构采用在 InGaAs/InP 界面处进行偶极掺杂的 InGaAs/InP 复合集电区结构，以避免电流阻挡效应。器件采用三重台面工艺制备，具有不同的发射极尺寸。发射极、基极与集电极的欧姆接触采用非合金化的 Ti/Pt/Au。随后采用电镀金空气桥将发射极、基极与集电极接触连接到外部的引线键合焊盘。发射极尺寸为 5 × 5 μm<sup>2</sup> 的 HBT，其峰值 <i>f</i><sub>T</sub> 与 <i>f</i><sub>max</sub> 分别为 75 GHz 与 50 GHz。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Table_5.1.png" alt="InP/InGaAs/InP DHBT 的外延结构">
+  <div class="cap"><b>表 5.1</b> InP/InGaAs/InP DHBT 的外延结构</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.6.png" alt="HBT 版图">
+  <div class="cap"><b>图 5.6</b> HBT 版图</div>
+</div>
+
+
+<h2 id="s5-3">5.3 PAD 电容的提取方法</h2>
+
+<p>三个电容元件 <i>C</i><sub>pb</sub>、<i>C</i><sub>pc</sub> 与 <i>C</i><sub>pbc</sub> 用于建模测量探针接触的电容效应。焊盘电容最常用的提取方法有两种：一种是开路测试结构法，另一种是夹断法。其详细步骤将在下述各小节中讨论。</p>
+
+<h3 id="s5-3-1">5.3.1 开路测试结构法</h3>
+
+<p>焊盘电容通过测量仅由焊盘构成的开路结构来确定 [16]。开路测试结构的测量结果被建模为一个电容 π 网络。图 5.7 给出了开路测试结构的版图及其对应的等效电路模型。该模型之所以如此简洁，直接得益于半绝缘 GaAs 或 InP 衬底以及直至半绝缘衬底的良好器件隔离。相比之下，硅器件的焊盘寄生修正要复杂得多，因为对导电衬底建模需要若干个额外的元件。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.7.png" alt="开路测试结构与等效电路模型">
+  <div class="cap"><b>图 5.7</b> 开路测试结构 (a) 与等效电路模型 (b)</div>
+</div>
+
+<p>开路测试结构的 <i>Y</i> 参数可表示如下：</p>
+
+<div class="eq"><span class="math-display">\[\mathrm{Im}\,Y_{11} = j\omega\left(C_{pb} + C_{pbc}\right)\]</span><span class="eqno">(5.44)</span></div>
+<div class="eq"><span class="math-display">\[\mathrm{Im}\,Y_{12} = \mathrm{Im}\,Y_{21} = -j\omega C_{pbc}\]</span><span class="eqno">(5.45)</span></div>
+<div class="eq"><span class="math-display">\[\mathrm{Im}\,Y_{22} = j\omega\left(C_{pc} + C_{pbc}\right)\]</span><span class="eqno">(5.46)</span></div>
+
+<p>由 (5.44) 至 (5.46) 可直接得到焊盘电容 <i>C</i><sub>pb</sub>、<i>C</i><sub>pc</sub> 与 <i>C</i><sub>pbc</sub>：</p>
+
+<div class="eq"><span class="math-display">\[C_{pb} = \frac{1}{\omega}\,\mathrm{Im}\left(Y_{11} + Y_{12}\right)\]</span><span class="eqno">(5.47)</span></div>
+<div class="eq"><span class="math-display">\[C_{pc} = \frac{1}{\omega}\,\mathrm{Im}\left(Y_{22} + Y_{12}\right)\]</span><span class="eqno">(5.48)</span></div>
+<div class="eq"><span class="math-display">\[C_{pbc} = -\frac{1}{\omega}\,\mathrm{Im}\,Y_{12} = -\frac{1}{\omega}\,\mathrm{Im}\,Y_{21}\]</span><span class="eqno">(5.49)</span></div>
+
+<p>根据 <i>Y</i> 参数与 <i>S</i> 参数之间的关系，</p>
+
+<div class="eq"><span class="math-display">\[Y_{11} = Y_{o}\,\frac{\left(1 - S_{11}\right)\left(1 + S_{22}\right) + S_{12}S_{21}}{\left(1 + S_{11}\right)\left(1 + S_{22}\right) - S_{12}S_{21}}\]</span><span class="eqno">(5.50)</span></div>
+<div class="eq"><span class="math-display">\[Y_{12} = Y_{o}\,\frac{-2S_{12}}{\left(1 + S_{11}\right)\left(1 + S_{22}\right) - S_{12}S_{21}}\]</span><span class="eqno">(5.51)</span></div>
+<div class="eq"><span class="math-display">\[Y_{21} = Y_{o}\,\frac{-2S_{21}}{\left(1 + S_{11}\right)\left(1 + S_{22}\right) - S_{12}S_{21}}\]</span><span class="eqno">(5.52)</span></div>
+<div class="eq"><span class="math-display">\[Y_{22} = Y_{o}\,\frac{\left(1 + S_{11}\right)\left(1 - S_{22}\right) + S_{12}S_{21}}{\left(1 + S_{11}\right)\left(1 + S_{22}\right) - S_{12}S_{21}}\]</span><span class="eqno">(5.53)</span></div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.8.png" alt="焊盘电容的频率依赖性">
+  <div class="cap"><b>图 5.8</b> 焊盘电容的频率依赖性</div>
+</div>
+
+<p>图 5.8 给出了焊盘电容随频率的变化。在 4–40 GHz 范围内观察到恒定的数值，与平均值的偏差小于 5%。这说明焊盘电容与频率无关，当然也与偏置无关。焊盘电容的数值为 <i>C</i><sub>pb</sub> = 12 fF、<i>C</i><sub>pc</sub> = 11 fF、<i>C</i><sub>pbc</sub> = 20 fF。焊盘之间的隔离度低于 30 dB。图 5.9 给出了开路测试结构 <i>S</i> 参数的建模值与实测值的比较，二者吻合良好。输入与输出反射系数 <i>S</i><sub>11</sub> 与 <i>S</i><sub>22</sub> 的实部在很宽的频带内基本保持不变，而虚部则随频率的升高而减小。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.9.png" alt="开路测试结构 S 参数建模值与实测值的比较">
+  <div class="cap"><b>图 5.9</b> 开路测试结构 <i>S</i> 参数建模值与实测值的比较：(a) <i>S</i><sub>11</sub>、(b) <i>S</i><sub>22</sub> 与 (c) <i>S</i><sub>21</sub></div>
+</div>
+
+<h3 id="s5-3-2">5.3.2 夹断法</h3>
+
+<p>对于完整的小信号模型，与在片测量相匹配的共面馈电结构的焊盘电容同样必须加以考虑。焊盘电容可以用开路测试结构法提取。然而，该方法要求针对晶圆上每一种器件尺寸制作专门的测试结构，并且必须忽略晶圆上的不均匀性。另一种被广泛使用的方法是夹断法，用于提取寄生的基极与集电极电容 <i>C</i><sub>pb</sub> 与 <i>C</i><sub>pc</sub> [15, 17–21]。图 5.10 给出了低频、夹断偏置条件下 HBT 的小信号等效电路模型。<i>C</i><sub>pb</sub>、<i>C</i><sub>pc</sub> 与 <i>C</i><sub>pbc</sub> 是与偏置无关的元件，而 <i>C</i><sub>be</sub> 与 <i>C</i><sub>bc</sub> 则是与偏置相关的元件。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.10.png" alt="夹断偏置条件下 HBT 的小信号等效电路模型">
+  <div class="cap"><b>图 5.10</b> 低频、夹断偏置条件下 HBT 的小信号等效电路模型</div>
+</div>
+
+<p>在截止偏置工作状态下，图 5.10 中的各电容可表示如下：</p>
+
+<div class="eq"><span class="math-display">\[C_{pb} + C_{be} = \frac{1}{\omega}\,\mathrm{Im}\left(Y_{11} + Y_{12}\right)\]</span><span class="eqno">(5.54)</span></div>
+<div class="eq"><span class="math-display">\[C_{pc} = \frac{1}{\omega}\,\mathrm{Im}\left(Y_{22} + Y_{12}\right)\]</span><span class="eqno">(5.55)</span></div>
+<div class="eq"><span class="math-display">\[C_{pbc} + C_{ex} + C_{bc} = -\frac{1}{\omega}\,\mathrm{Im}\,Y_{12}\]</span><span class="eqno">(5.56)</span></div>
+
+<p>基极—发射极电容 <i>C</i><sub>be</sub> 可描述为</p>
+
+<div class="eq"><span class="math-display">\[C_{be} = \frac{C_{jbeo}}{\left(1 - \dfrac{V_{BE}}{V_{jbe}}\right)^{M_{BE}}}\]</span><span class="eqno">(5.57)</span></div>
+
+<p>其中 <i>C</i><sub>jbeo</sub> 是零偏基极—发射极电容，<i>M</i><sub>BE</sub> 是基极—发射极结的梯度系数，<i>V</i><sub>jbe</sub> 是基极—发射极内建电压。</p>
+
+<p><i>C</i><sub>pbc</sub> 的提取可以通过在不同反向基极—发射极电压下将 <i>C</i><sub>be</sub> 与 <i>C</i><sub>pbc</sub> 之和对 (5.54) 进行拟合来完成，也可以采用迭代法：尝试不同的 <i>C</i><sub>jbeo</sub>、<i>M</i><sub>BE</sub> 与 <i>V</i><sub>jbe</sub> 取值，直到 <i>C</i><sub>pb</sub> + <i>C</i><sub>be</sub> 对 (1 − <i>V</i><sub>BE</sub>/<i>V</i><sub>jbe</sub>)<sup><i>M</i><sub>BE</sub></sup> 的曲线成为一条直线为止。图 5.11 给出了 <i>C</i><sub>pb</sub> + <i>C</i><sub>be</sub>(<i>V</i><sub>be</sub>) 随 <i>V</i><sub>be</sub> 变化的典型曲线。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.11.png" alt="Cpb + Cbe 随 Vbe 变化的曲线">
+  <div class="cap"><b>图 5.11</b> <i>C</i><sub>pb</sub> + <i>C</i><sub>be</sub>(<i>V</i><sub>be</sub>) 随 <i>V</i><sub>be</sub> 变化的曲线</div>
+</div>
+
+<p>基极—集电极电容 <i>C</i><sub>bc</sub> 可描述为</p>
+
+<div class="eq"><span class="math-display">\[C_{bc} = \frac{C_{jbco}}{\left(1 - \dfrac{V_{BC}}{V_{jbc}}\right)^{M_{BC}}}\]</span><span class="eqno">(5.58)</span></div>
+
+<p>其中 <i>C</i><sub>jbco</sub> 是零偏基极—集电极电容，<i>M</i><sub>BC</sub> 是基极—集电极结的梯度系数，<i>V</i><sub>jbc</sub> 是基极—集电极内建电压。</p>
+
+<p>实际上，在关态电容测量中，很难把焊盘电容与器件内部电容分离开来。主要问题在于被测电容的数值很大，而焊盘电容只是叠加在 pn 结电容之上的一个很小的偏移量。因此，其他参数的微小变化都会给这些电容带来很大的相对误差。</p>
+
+<h2 id="s5-4">5.4 外部电感的提取方法</h2>
+
+<p>外部电感由被测器件与测试焊盘之间的馈线所引起。确定外部电感 <i>L</i><sub>b</sub>、<i>L</i><sub>c</sub> 与 <i>L</i><sub>e</sub> 最常用的方法有两种：短路测试结构法与开集电极法。</p>
+
+<h3 id="s5-4-1">5.4.1 短路测试结构法</h3>
+
+<p>寄生器件连接阻抗可以通过测量一个测试图形来确定，该图形由焊盘、器件馈线以及一个取代晶体管的短路构成。短路测试结构被建模为一个由串联电阻与电感构成的 T 网络。图 5.12 给出了短路测试结构及其对应的等效电路模型。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.12.png" alt="短路测试结构与等效电路模型">
+  <div class="cap"><b>图 5.12</b> 短路测试结构 (a) 与等效电路模型 (b)</div>
+</div>
+
+<p>在去嵌入焊盘电容之后，外部电感与馈线损耗可由短路测试结构的 <i>Z</i> 参数直接确定：</p>
+
+<div class="eq"><span class="math-display">\[L_{e} = \frac{1}{\omega}\,\mathrm{Im}\,Z_{12} = \frac{1}{\omega}\,\mathrm{Im}\,Z_{21}\]</span><span class="eqno">(5.59)</span></div>
+<div class="eq"><span class="math-display">\[L_{b} = \frac{1}{\omega}\,\mathrm{Im}\left(Z_{11} - Z_{12}\right)\]</span><span class="eqno">(5.60)</span></div>
+<div class="eq"><span class="math-display">\[L_{c} = \frac{1}{\omega}\,\mathrm{Im}\left(Z_{22} - Z_{21}\right)\]</span><span class="eqno">(5.61)</span></div>
+<div class="eq"><span class="math-display">\[R_{pb} = \mathrm{Re}\left(Z_{11} - Z_{12}\right)\]</span><span class="eqno">(5.62)</span></div>
+<div class="eq"><span class="math-display">\[R_{pc} = \mathrm{Re}\left(Z_{11} - Z_{21}\right)\]</span><span class="eqno">(5.63)</span></div>
+<div class="eq"><span class="math-display">\[R_{pe} = \mathrm{Re}\,Z_{12} = \mathrm{Re}\,Z_{21}\]</span><span class="eqno">(5.64)</span></div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.13.png" alt="外部电感的频率依赖性">
+  <div class="cap"><b>图 5.13</b> 外部电感的频率依赖性：(a) 基极电感、(b) 集电极电感与 (c) 发射极电感</div>
+</div>
+
+<p>图 5.13 给出了外部电感随频率的变化；在 2–40 GHz 范围内观察到恒定的数值，与平均值的偏差小于 5%。这说明馈线电感与频率无关，当然也与偏置无关。图 5.13 还比较了去嵌入与不去嵌入焊盘电容两种情况下的提取结果。可以发现二者差异很小，原因在于等效电路中馈线电感占主导地位，焊盘电容的影响可以忽略。馈线损耗如图 5.14 所示：它们非常小，通常小于 1 Ω，因此与 HBT 器件的接触电阻相比可以忽略不计。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.14.png" alt="馈线损耗的频率依赖性">
+  <div class="cap"><b>图 5.14</b> 馈线损耗的频率依赖性</div>
+</div>
+
+<p>图 5.15 给出了短路测试结构 <i>S</i> 参数建模值与实测值的比较，二者吻合良好。输入与输出反射系数 <i>S</i><sub>11</sub> 与 <i>S</i><sub>22</sub> 的实部在很宽的频带内基本保持不变，而虚部则随频率的升高而增大。<i>S</i><sub>12</sub> 的虚部与实部都随频率的升高而增大。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.15.png" alt="短路测试结构 S 参数建模值与实测值的比较">
+  <div class="cap"><b>图 5.15</b> 短路测试结构 <i>S</i> 参数建模值与实测值的比较：(a) <i>S</i><sub>11</sub>、(b) <i>S</i><sub>22</sub> 与 (c) <i>S</i><sub>12</sub></div>
+</div>
+
+<h3 id="s5-4-2">5.4.2 开集电极法</h3>
+
+<p>开集电极法用于提取外部电感与电阻的数值。开集电极条件是这样实现的：把 HBT 偏置在正向偏置下、特别是施加很大的基极电流（<i>I</i><sub>b</sub> ≈ 10 mA 至 100 mA），使集电极电流等于零，此时基极—集电极结与基极—发射极结都处于充分正向的状态，集电极电流被抵消（如图 5.16 所示）[1, 22–24]。在很高的基极电流密度下，寄生电容的影响与电感相比仍然可以忽略。此外，基极—发射极结电容与基极—集电极结电容具有很低的阻抗和很低的结动态电阻，从而将它们自身短路。正因如此，等效电路 <i>Z</i> 参数的虚部由器件的寄生电感所主导。在这种工作模式下，HBT 的等效电路可以用一个简单的 T 型电路来建模，如图 5.17 所示。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.16.png" alt="开集电极法示意图">
+  <div class="cap"><b>图 5.16</b> 开集电极法示意图</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.17.png" alt="开集电极偏置条件下的外部电感示意图">
+  <div class="cap"><b>图 5.17</b> 开集电极偏置条件下的外部电感示意图</div>
+</div>
+
+<p>该电路 <i>Z</i> 参数的虚部由下列方程定义：</p>
+
+<div class="eq"><span class="math-display">\[\mathrm{Im}\,Z_{11} = \omega\left(L_{b} + L_{e}\right)\]</span><span class="eqno">(5.65)</span></div>
+<div class="eq"><span class="math-display">\[\mathrm{Im}\,Z_{22} = \omega\left(L_{c} + L_{e}\right)\]</span><span class="eqno">(5.66)</span></div>
+<div class="eq"><span class="math-display">\[\mathrm{Im}\,Z_{12} = \omega L_{e}\]</span><span class="eqno">(5.67)</span></div>
+
+<p>因此，外部电感的数值可以很容易地由 <i>Z</i> 参数的虚部得到。图 5.18 给出了器件处于正向偏置时 <i>Z</i> 参数虚部随 <i>ω</i> 的变化。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.18.png" alt="正向偏置下 Z 参数虚部随 ω 的变化">
+  <div class="cap"><b>图 5.18</b> 器件正向偏置时 <i>Z</i> 参数虚部随 <i>ω</i> 的变化</div>
+</div>
+
+<h2 id="s5-5">5.5 外部电阻的提取方法</h2>
+
+<p>与外部电容和电感相比，外部电阻更为复杂，也是一个关键问题。外部电阻显著影响直流 <i>I</i>–<i>V</i> 特性与射频性能。<i>Z</i> 参数法、冷 HBT 法与开集电极法是确定三个外部电阻 <i>R</i><sub>bx</sub>、<i>R</i><sub>c</sub> 与 <i>R</i><sub>e</sub> 最常用的方法。</p>
+
+<h3 id="s5-5-1">5.5.1 Z 参数法</h3>
+
+<p>在低频范围内，共基极电流增益 <i>α</i> 趋于 1；因此，在集电极电流较大（此时中性基区复合是主要的复合机制）的条件下，<i>R</i><sub>be</sub> + <i>R</i><sub>e</sub> 可由 <i>Z</i><sub>12</sub> 的实部得到（见式 (5.18)）。<i>R</i><sub>be</sub> + <i>R</i><sub>e</sub> 可表示如下 [24]：</p>
+
+<div class="eq"><span class="math-display">\[R_{be} + R_{e} = \mathrm{Re}\,Z_{12}\]</span><span class="eqno">(5.68)</span></div>
+
+<p>其中 <i>R</i><sub>be</sub> 是基极—发射极结的动态电阻，其表达式如下：</p>
+
+<div class="eq"><span class="math-display">\[R_{be} = \frac{\eta kT}{qI_{E}}\]</span><span class="eqno">(5.69)</span></div>
+
+<p>Re(<i>Z</i><sub>12</sub>) 对 1/<i>I</i><sub>E</sub> 作图所得直线的截距即为 <i>R</i><sub>e</sub> 的数值。如图 5.19 所示，在极低的频率下，实测 <i>Z</i><sub>12</sub> 的实部对 1/<i>I</i><sub>E</sub> 呈现线性依赖，<i>R</i><sub>e</sub> 可由截距得到。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.19.png" alt="Real(Z12) 随 1/IE 的变化">
+  <div class="cap"><b>图 5.19</b> Re(<i>Z</i><sub>12</sub>) 随 1/<i>I</i><sub>E</sub> 的变化，<i>f</i> = 1 GHz</div>
+</div>
+
+<p>需要注意的是，<i>Z</i> 参数法只适用于确定 <i>R</i><sub>e</sub>，<i>R</i><sub>bx</sub> 与 <i>R</i><sub>c</sub> 无法同时获得。</p>
+
+
+<h3 id="s5-5-2">5.5.2 冷 HBT 法</h3>
+
+<p>截止偏置条件下 HBT 的小信号等效电路模型如图 5.20 所示。HBT 的截止偏置条件定义为两个结均处于零偏（或反偏）的状态。在这种条件下，直流电流为零，因此共基极电流增益 <i>α</i> 会非常小，器件表现为一个无源元件（<i>Z</i><sub>12</sub> = <i>Z</i><sub>21</sub>）。于是等效电路变得简单得多，其 <i>Z</i> 参数为 [25, 26]</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.20.png" alt="截止偏置条件下 InP HBT 的小信号等效电路">
+  <div class="cap"><b>图 5.20</b> 截止偏置条件下 InP HBT 的小信号等效电路</div>
+</div>
+
+<div class="eq"><span class="math-display">\[Z_{11} - Z_{12} = \frac{Z_{EX}R_{bi}}{Z_{BC} + Z_{EX} + R_{bi}} + Z_{B}\]</span><span class="eqno">(5.70)</span></div>
+<div class="eq"><span class="math-display">\[Z_{12} = Z_{21} = \frac{Z_{BC}R_{bi}}{Z_{BC} + Z_{EX} + R_{bi}} + Z_{BE} + Z_{E}\]</span><span class="eqno">(5.71)</span></div>
+<div class="eq"><span class="math-display">\[Z_{22} - Z_{12} = \frac{Z_{BC}Z_{EX}}{Z_{BC} + Z_{EX} + R_{bi}} + Z_{C}\]</span><span class="eqno">(5.72)</span></div>
+
+<p>在确定了焊盘电容、串联电感与发射极电阻之后，外部基极电阻与集电极电阻可以由截止偏置条件（此时基极—集电极结与基极—发射极结均处于反向状态）下的 <i>Z</i> 参数确定。为了提取 <i>R</i><sub>bx</sub> 与 <i>R</i><sub>c</sub>，由 (5.70) 至 (5.72) 推导出一组用于确定基极—集电极电容 <i>C</i><sub>bc</sub> 与 <i>C</i><sub>ex</sub> 的新表达式。</p>
+
+<p>电容 <i>C</i><sub>bc</sub> 与 <i>C</i><sub>ex</sub> 之和以及 <i>C</i><sub>ex</sub> 可直接计算如下：</p>
+
+<div class="eq"><span class="math-display">\[C_{bc} + C_{ex} = -\frac{1}{\omega B}\left(1 + \frac{A^{2}}{C^{2}D^{2}}\right)\]</span><span class="eqno">(5.73)</span></div>
+<div class="eq"><span class="math-display">\[C_{ex} = -\frac{(C/B)^{2}}{\omega A\left[\left(1 + \dfrac{1}{D}\right)^{2} + (C/B)^{2}\right]}\]</span><span class="eqno">(5.74)</span></div>
+
+<p>其中</p>
+
+<div class="eq"><span class="math-display">\[A = \mathrm{Im}\left(Z_{11} - Z_{12}\right),\quad B = \mathrm{Im}\left(Z_{22} - Z_{12}\right),\quad C = \mathrm{Re}\,Z_{12},\quad D = \frac{AB + \sqrt{A^{2}B^{2} + 4ABC^{2}}}{2C^{2}}\]</span></div>
+
+<p>外部电阻 <i>R</i><sub>bx</sub>、<i>R</i><sub>c</sub> 与本征基极电阻 <i>R</i><sub>bi</sub> 可表示为</p>
+
+<div class="eq"><span class="math-display">\[R_{bx} = \mathrm{Re}\left(Z_{11} - Z_{12}\right) - \frac{R_{bi}C_{bc}}{C_{ex} + C_{bc} + j\omega R_{bi}C_{bc}C_{ex}}\]</span><span class="eqno">(5.75)</span></div>
+<div class="eq"><span class="math-display">\[R_{c} = \mathrm{Re}\left(Z_{22} - Z_{12}\right) - \frac{1}{j\omega\left(C_{ex} + C_{bc}\right) - \omega^{2}R_{bi}C_{bc}C_{ex}}\]</span><span class="eqno">(5.76)</span></div>
+<div class="eq"><span class="math-display">\[R_{bi} = -\frac{D}{\omega C_{ex}}\]</span><span class="eqno">(5.77)</span></div>
+
+<p>同时，基极—发射极结电容 <i>C</i><sub>be</sub> 可提取如下：</p>
+
+<div class="eq"><span class="math-display">\[C_{be} = \frac{1}{\omega\,\mathrm{Im}\!\left(Z_{12} - \dfrac{R_{bi}C_{ex}}{C_{ex} + C_{bc} + j\omega R_{bi}C_{bc}C_{ex}}\right)}\]</span><span class="eqno">(5.78)</span></div>
+
+<p>图 5.21 与图 5.22 给出了在 <i>V</i><sub>BE</sub> = 0 V、0.2 V 且 <i>V</i><sub>CE</sub> = 0 V 的不同偏置下，利用 (5.73) 与 (5.74) 提取的 <i>C</i><sub>bc</sub> + <i>C</i><sub>ex</sub> 与 <i>C</i><sub>ex</sub> 随频率的变化。可以观察到数值相当恒定，标准偏差很小。值得注意的是，外部基极—集电极电容 <i>C</i><sub>ex</sub> 与偏置有关，它随 <i>V</i><sub>BE</sub> 的增大而增大。一旦得到 <i>C</i><sub>ex</sub>，<i>C</i><sub>bc</sub> 便可由 (5.73) 与 (5.74) 之差确定。还可以发现，<i>C</i><sub>bc</sub> 是基极—集电极偏置电压的弱函数。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.21.png" alt="截止偏置条件下提取的 Cbc + Cex 随频率的变化">
+  <div class="cap"><b>图 5.21</b> 截止偏置条件下提取的 <i>C</i><sub>bc</sub> + <i>C</i><sub>ex</sub> 随频率的变化</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.22.png" alt="截止偏置条件下提取的 Cex 随频率的变化">
+  <div class="cap"><b>图 5.22</b> 截止偏置条件下提取的 <i>C</i><sub>ex</sub> 随频率的变化</div>
+</div>
+
+<p>图 5.23、图 5.24、图 5.25 与图 5.26 给出了在不同 <i>V</i><sub>BE</sub> 下提取的本征电阻 <i>R</i><sub>bi</sub>、基极—发射极电容 <i>C</i><sub>be</sub> 以及外部电阻 <i>R</i><sub>bx</sub> 与 <i>R</i><sub>c</sub> 随频率的变化。在很宽的频率范围内都可以观察到相当恒定的数值。还可以发现 <i>R</i><sub>bx</sub> 与 <i>R</i><sub>c</sub> 与偏置无关。前述提取得到的寄生元件汇总于表 5.2。图 5.27 比较了 InP HBT 在 50 MHz–40 GHz 频率范围内、不同偏置条件下实测与建模的 <i>S</i> 参数，建模 <i>S</i> 参数在整个频率范围内与实测数据吻合良好。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.23.png" alt="截止偏置条件下提取的 Rbi 随频率的变化">
+  <div class="cap"><b>图 5.23</b> 截止偏置条件下提取的 <i>R</i><sub>bi</sub> 随频率的变化</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.24.png" alt="截止偏置条件下提取的 Cbe 随频率的变化">
+  <div class="cap"><b>图 5.24</b> 截止偏置条件下提取的 <i>C</i><sub>be</sub> 随频率的变化</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.25.png" alt="截止偏置条件下提取的 Rbx 随频率的变化">
+  <div class="cap"><b>图 5.25</b> 截止偏置条件下提取的 <i>R</i><sub>bx</sub> 随频率的变化</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.26.png" alt="截止偏置条件下提取的 Rc 随频率的变化">
+  <div class="cap"><b>图 5.26</b> 截止偏置条件下提取的 <i>R</i><sub>c</sub> 随频率的变化</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Table_5.2.png" alt="HBT 寄生元件汇总">
+  <div class="cap"><b>表 5.2</b> HBT 寄生元件</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.27.png" alt="InP HBT 建模与实测 S 参数的比较">
+  <div class="cap"><b>图 5.27</b> InP HBT 建模与实测 <i>S</i> 参数的比较。偏置条件：(a) <i>V</i><sub>BE</sub> = 0.0 V、<i>V</i><sub>CE</sub> = 0.0 V；(b) <i>V</i><sub>BE</sub> = 0.2 V、<i>V</i><sub>CE</sub> = 0.0 V</div>
+</div>
+
+<p>与开集电极法相比，这种截止法的优点是 <i>R</i><sub>bx</sub> 与 <i>R</i><sub>bi</sub> 可以在高频下分离。整个过程不需要正向基极电流流动，因此器件在整个测量周期内都工作在恒定温度下。</p>
+
+<h3 id="s5-5-3">5.5.3 开集电极法</h3>
+
+<p>在低频下，开集电极偏置条件下带有外部电阻的本征 HBT 等效电路模型如图 5.28 所示。动态电阻 <i>R</i><sub>be</sub> 与 <i>R</i><sub>bc</sub> 分别用于建模正向的基极—发射极结与基极—集电极结 [1, 22–24]。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.28.png" alt="开集电极偏置条件下带外部电阻的本征 HBT 等效电路模型">
+  <div class="cap"><b>图 5.28</b> 低频、开集电极偏置条件下带外部电阻的本征 HBT 等效电路模型</div>
+</div>
+
+<p>低频、开集电极偏置条件下 <i>Z</i> 参数的实部可表示如下：</p>
+
+<div class="eq"><span class="math-display">\[\mathrm{Re}\,Z_{11} = R_{bi} + R_{bx} + R_{e} + R_{be}\]</span><span class="eqno">(5.79)</span></div>
+<div class="eq"><span class="math-display">\[\mathrm{Re}\,Z_{12} = R_{e} + R_{be} = R_{e} + \frac{\eta_{be}V_{T}}{I_{BE}}\]</span><span class="eqno">(5.80)</span></div>
+<div class="eq"><span class="math-display">\[\mathrm{Re}\,Z_{21} = R_{e} + R_{be} - \alpha R_{bc} = R_{e} + \frac{\eta_{be}V_{T}}{I_{BE}} + \frac{\alpha\eta_{bc}V_{T}}{I_{BC}}\]</span><span class="eqno">(5.81)</span></div>
+<div class="eq"><span class="math-display">\[\mathrm{Re}\,Z_{22} = R_{c} + R_{e} + R_{be} + \left(1 - \alpha\right)R_{bc}\]</span><span class="eqno">(5.82)</span></div>
+
+<p>因此，有</p>
+
+<div class="eq"><span class="math-display">\[\mathrm{Re}\left(Z_{11} - Z_{12}\right) = R_{bi} + R_{bx}\]</span><span class="eqno">(5.83)</span></div>
+<div class="eq"><span class="math-display">\[\mathrm{Re}\left(Z_{22} - Z_{21}\right) = R_{bc} + R_{c} = \frac{\eta_{bc}V_{t}}{I_{BC}} + R_{c}\]</span><span class="eqno">(5.84)</span></div>
+
+<p>其中 <i>V</i><sub>t</sub> = <i>kT</i>/<i>q</i> 定义为热电压，<i>I</i><sub>BE</sub> 与 <i>I</i><sub>BC</sub> 分别为基极—发射极结与基极—集电极结的正向电流，<i>η</i><sub>be</sub> 与 <i>η</i><sub>bc</sub> 分别为基极—发射极结与基极—集电极结的电流发射系数。</p>
+
+<p>在很高的基极电流密度（<i>I</i><sub>B</sub> = <i>I</i><sub>BE</sub> + <i>I</i><sub>BC</sub>）下，动态电阻 <i>R</i><sub>be</sub> 与 <i>R</i><sub>bc</sub> 变得非常小并趋于零，<i>Z</i><sub>12</sub>、<i>Z</i><sub>21</sub> 与 <i>Z</i><sub>22</sub> − <i>Z</i><sub>12</sub> 的实部随 1/<i>I</i><sub>B</sub> 呈线性增长。这些直线在纵轴（<i>I</i><sub>B</sub> ≈ ∞）上的外推截距给出 <i>R</i><sub>c</sub> 与 <i>R</i><sub>e</sub> 的数值（如图 5.29 所示）。然而，基极电阻的确定比较复杂，使用上述方法无法得到全部基极电阻。在很高的基极电流密度下，总基极电阻 <i>R</i><sub>bi</sub> + <i>R</i><sub>bx</sub> 渐近地趋于接触基极电阻 <i>R</i><sub>bx</sub>，如图 5.30 所示。假设在极高的基极正向电流下 <i>R</i><sub>bi</sub> 趋于零，即可估计出 <i>R</i><sub>bx</sub>。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.29.png" alt="Z22 − Z21、Z21 与 Z12 的实部对 1/IB 作图">
+  <div class="cap"><b>图 5.29</b> <i>Z</i><sub>22</sub> − <i>Z</i><sub>21</sub>、<i>Z</i><sub>21</sub> 与 <i>Z</i><sub>12</sub> 的实部对 1/<i>I</i><sub>B</sub> 作图</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.30.png" alt="Z11 − Z21 的实部对 IB 作图">
+  <div class="cap"><b>图 5.30</b> <i>Z</i><sub>11</sub> − <i>Z</i><sub>21</sub> 的实部对 <i>I</i><sub>B</sub> 作图</div>
+</div>
+
+<p>表 5.3 比较了确定外部电阻的各种方法，并汇总了各自的难点与缺点。此外还有其他一些确定外部电阻的有效方法，例如直流测量法 [27–31]。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Table_5.3.png" alt="确定外部电阻的各种方法的比较">
+  <div class="cap"><b>表 5.3</b> 确定外部电阻的各种方法的比较</div>
+</div>
+
+<h2 id="s5-6">5.6 本征电阻的提取方法</h2>
+
+<h3 id="s5-6-1">5.6.1 直接提取法</h3>
+
+<p>一旦寄生元件（<i>C</i><sub>pb</sub>、<i>C</i><sub>pc</sub>、<i>C</i><sub>pbc</sub>、<i>L</i><sub>b</sub>、<i>L</i><sub>c</sub>、<i>L</i><sub>e</sub>、<i>R</i><sub>bx</sub>、<i>R</i><sub>c</sub> 与 <i>R</i><sub>e</sub>) 为已知，本征模型参数的提取便可按如下步骤进行 [32–37]：</p>
+
+<ol>
+<li>测量 HBT 的 <i>S</i> 参数；</li>
+<li>把 <i>S</i> 参数变换为导纳参数 <i>Y</i><sub>D</sub>，并减去焊盘电容（<i>C</i><sub>pb</sub>、<i>C</i><sub>pc</sub> 与 <i>C</i><sub>pbc</sub>）：</li>
+</ol>
+
+<div class="eq"><span class="math-display">\[Y = Y_{D} - \begin{bmatrix} j\omega\left(C_{pb} + C_{pbc}\right) &amp; j\omega C_{pbc} \\ j\omega C_{pbc} &amp; j\omega\left(C_{pc} + C_{pbc}\right) \end{bmatrix}\]</span><span class="eqno">(5.85)</span></div>
+
+<ol start="3">
+<li>把 <i>Y</i> 参数 <i>Y</i><sub>D</sub> 变换为阻抗参数 <i>Z</i><sub>D</sub>，并减去串联电感（<i>L</i><sub>b</sub>、<i>L</i><sub>c</sub> 与 <i>L</i><sub>e</sub>）与串联电阻（<i>R</i><sub>bx</sub>、<i>R</i><sub>c</sub> 与 <i>R</i><sub>e</sub>）：</li>
+</ol>
+
+<div class="eq"><span class="math-display">\[Z = Z_{D} - \begin{bmatrix} R_{bx} + R_{e} + j\omega\left(L_{b} + L_{e}\right) &amp; R_{e} + j\omega L_{e} \\ R_{e} + j\omega L_{e} &amp; R_{c} + R_{e} + j\omega\left(L_{c} + L_{e}\right) \end{bmatrix}\]</span><span class="eqno">(5.86)</span></div>
+
+<ol start="4">
+<li>本征模型参数可按下列各式得到：</li>
+</ol>
+
+<div class="eq"><span class="math-display">\[C_{bc} + C_{ex} = \frac{1}{\omega}\,\mathrm{Im}\!\left(\frac{1}{Z_{22} - Z_{21}}\right)\]</span><span class="eqno">(5.87)</span></div>
+<div class="eq"><span class="math-display">\[C_{ex} = -\frac{1}{\omega}\,\frac{\mathrm{Re}\!\left(\dfrac{1}{Z_{22} - Z_{21}}\right)\mathrm{Re}\!\left(\dfrac{1}{Z_{11} - Z_{12}}\right)}{\mathrm{Im}\!\left(\dfrac{1}{Z_{22} - Z_{21}}\right)}\]</span><span class="eqno">(5.88)</span></div>
+<div class="eq"><span class="math-display">\[R_{bi} = \frac{\mathrm{Im}\!\left(\dfrac{1}{Z_{22} - Z_{21}}\right)}{\omega C_{bc}\,\mathrm{Re}\!\left(\dfrac{1}{Z_{11} - Z_{12}}\right)}\]</span><span class="eqno">(5.89)</span></div>
+<div class="eq"><span class="math-display">\[\alpha_{\mathrm{o}} = \left|\alpha(\omega)\right|\Big|_{\omega\to 0} = \left|\frac{Z_{12} - Z_{21}}{Z_{22} - Z_{21}}\right|\Big|_{\omega\to 0}\]</span><span class="eqno">(5.90)</span></div>
+<div class="eq"><span class="math-display">\[\omega_{\alpha} = \frac{\omega\left|\alpha(\omega)\right|}{\sqrt{\alpha_{\mathrm{o}}^{2} - \left|\alpha(\omega)\right|^{2}}}\]</span><span class="eqno">(5.91)</span></div>
+<div class="eq"><span class="math-display">\[\tau = -\frac{1}{\omega}\,\mathrm{arctg}\!\left(\frac{\mathrm{Im}\!\left(\dfrac{Z_{12} - Z_{21}}{Z_{22} - Z_{21}}\right)}{\mathrm{Re}\!\left(\dfrac{Z_{12} - Z_{21}}{Z_{22} - Z_{21}}\right)}\right) + \frac{1}{\omega}\,\mathrm{arctg}\,\frac{\omega}{\omega_{\alpha}}\]</span><span class="eqno">(5.92)</span></div>
+<div class="eq"><span class="math-display">\[R_{BE} = \frac{1}{\mathrm{Re}\!\left(\dfrac{1}{Z_{12} - \dfrac{\left(1 - \alpha\right)C_{ex}R_{bi}}{\left(C_{bc} + C_{ex}\right) + j\omega C_{bc}C_{ex}R_{bi}}}\right)}\]</span><span class="eqno">(5.93)</span></div>
+<div class="eq"><span class="math-display">\[C_{BE} = \frac{1}{\omega}\,\mathrm{Im}\!\left(\frac{1}{Z_{12} - \dfrac{\left(1 - \alpha\right)C_{ex}R_{bi}}{\left(C_{bc} + C_{ex}\right) + j\omega C_{bc}C_{ex}R_{bi}}}\right)\]</span><span class="eqno">(5.94)</span></div>
+
+<p>基于所建立的等效电路方法，我们研究了工作在不同有源偏置下的变质 InP HBT 小信号等效电路模型的本征元件特性。</p>
+
+<p>图 5.31 给出了电流增益的模 |<i>α</i>(<i>ω</i>)| 随频率的变化；|<i>α</i>(<i>ω</i>)| 随注入水平的升高而增大、随频率的升高而减小。<i>α</i><sub>o</sub> 由 |<i>α</i>(<i>ω</i>)| 在低频处的取值得到。图 5.32 给出了相应的 <i>α</i><sub>o</sub> 随 <i>I</i><sub>B</sub> 与 <i>V</i><sub>CE</sub> 的变化。还可以观察到 <i>α</i><sub>o</sub> 随注入水平略有增大；在极端情况下，可以认为它与偏置条件无关。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.31.png" alt="VCE = 2 V 时提取的 |α(ω)| 随频率的变化">
+  <div class="cap"><b>图 5.31</b> <i>V</i><sub>CE</sub> = 2 V 时提取的 |<i>α</i>(<i>ω</i>)| 随频率的变化</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.32.png" alt="提取的 αo 随 IB 与 VCE 的变化">
+  <div class="cap"><b>图 5.32</b> 提取的 <i>α</i><sub>o</sub> 随 <i>I</i><sub>B</sub> 与 <i>V</i><sub>CE</sub> 的变化</div>
+</div>
+
+<p>图 5.33 给出了提取的 3 dB 滚降频率随频率的变化。可以观察到 <i>f</i><sub>α</sub> 随 <i>I</i><sub>B</sub> 的增大而升高，原因在于 <i>R</i><sub>be</sub> 随 <i>I</i><sub>B</sub> 的增大而迅速减小，同时 <i>C</i><sub>be</sub> 随 <i>I</i><sub>B</sub> 增大的变化较小（<i>f</i><sub>α</sub> 可表示为 <i>f</i><sub>α</sub> = 1/(2π<i>R</i><sub>be</sub><i>C</i><sub>be</sub>)）。如图 5.34 所示，不同 <i>V</i><sub>CE</sub> 下的 <i>f</i><sub>α</sub> 特性相似，可以观察到它与 <i>V</i><sub>CE</sub> 无关。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.33.png" alt="VCE = 2 V 时提取的 fα 随频率的变化">
+  <div class="cap"><b>图 5.33</b> <i>V</i><sub>CE</sub> = 2 V 时提取的 <i>f</i><sub>α</sub> 随频率的变化</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.34.png" alt="提取的 fα 随 IB 与 VCE 的变化">
+  <div class="cap"><b>图 5.34</b> 提取的 <i>f</i><sub>α</sub> 随 <i>I</i><sub>B</sub> 与 <i>V</i><sub>CE</sub> 的变化</div>
+</div>
+
+<p>众所周知，本征时间延迟可表示为</p>
+
+<div class="eq"><span class="math-display">\[\tau = \frac{m\tau_{B}}{1.2} + \frac{\tau_{c}}{2} = \frac{m}{1.2\omega_{\alpha}} + \frac{W_{BC}}{2\upsilon_{sat}}\]</span><span class="eqno">(5.95)</span></div>
+
+<p>其中 <i>τ</i><sub>B</sub> 与 <i>τ</i><sub>c</sub> 分别为基区渡越时间与集电区渡越时间，<i>W</i><sub>BC</sub> 是基极—集电极结耗尽区厚度，<i>υ</i><sub>sat</sub> 是高场载流子饱和速度，<i>m</i> 是把基区传输因子的单极点表达式与其更精确的双曲正割表示拟合起来的经验因子。正如耗尽区厚度增大时所预期的那样，集电区渡越时间 <i>τ</i><sub>c</sub> 随基极—集电极结反向偏置的增大而增大，而本征渡越时间 <i>τ</i> 则随 <i>I</i><sub>B</sub> 的增大（即 <i>ω</i><sub>α</sub> 的增大）而减小。<i>V</i><sub>CE</sub> = 2 V、不同 <i>I</i><sub>B</sub> 下提取的 <i>τ</i> 随频率的变化如图 5.35 所示，<i>τ</i> 随 <i>I</i><sub>B</sub> 与 <i>V</i><sub>CE</sub> 的变化如图 5.36 所示。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.35.png" alt="VCE = 2 V 时提取的 τ 随频率的变化">
+  <div class="cap"><b>图 5.35</b> <i>V</i><sub>CE</sub> = 2 V 时提取的 <i>τ</i> 随频率的变化</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.36.png" alt="提取的 τ 随 IB 与 VCE 的变化">
+  <div class="cap"><b>图 5.36</b> 提取的 <i>τ</i> 随 <i>I</i><sub>B</sub> 与 <i>V</i><sub>CE</sub> 的变化</div>
+</div>
+
+<p><i>V</i><sub>CE</sub> = 2 V、不同 <i>I</i><sub>B</sub> 下提取的外部基极—集电极电容 <i>C</i><sub>ex</sub> 随频率的变化如图 5.37 所示，其随 <i>V</i><sub>CB</sub> 的变化如图 5.38 所示。可以清楚地观察到 <i>C</i><sub>ex</sub> 是与偏置有关的元件，它随 <i>V</i><sub>CB</sub> 的增大而减小，这是由 <i>V</i><sub>CE</sub> 增大导致基极—集电极耗尽区宽度增加所引起的。还可以发现 <i>C</i><sub>ex</sub> 可以认为与 <i>I</i><sub>B</sub> 无关。外部基极—集电极电容 <i>C</i><sub>ex</sub> 可以用常规的反偏二极管电容公式建模：</p>
+
+<div class="eq"><span class="math-display">\[C_{ex} = \frac{C_{jexo}}{\left(1 + \dfrac{V_{cb}}{V_{jex}}\right)^{m_{jex}}}, \quad V_{cb} = V_{CB} - I_{C}R_{c}\]</span><span class="eqno">(5.96)</span></div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.37.png" alt="VCE = 2 V 时提取的 Cex 随频率的变化">
+  <div class="cap"><b>图 5.37</b> <i>V</i><sub>CE</sub> = 2 V 时提取的 <i>C</i><sub>ex</sub> 随频率的变化</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.38.png" alt="建模与实测 Cex 随 VCB 的比较">
+  <div class="cap"><b>图 5.38</b> 建模与实测 <i>C</i><sub>ex</sub> 随 <i>V</i><sub>CB</sub> 的比较</div>
+</div>
+
+
+<p>其中 <i>C</i><sub>jexo</sub> 是零偏外部基极—集电极电容，<i>V</i><sub>jex</sub> 是外部基极—集电极内建电势，<i>m</i><sub>jex</sub> 是梯度系数。上述参数用迭代法提取：尝试不同的 <i>C</i><sub>jexo</sub>、<i>V</i><sub>jex</sub> 与 <i>m</i><sub>jex</sub> 取值，直到 <i>C</i><sub>ex</sub> 对 (1 + <i>V</i><sub>CB</sub>/<i>V</i><sub>jex</sub>)<sup><i>m</i><sub>jex</sub></sup> 的曲线成为一条直线。数值为 <i>C</i><sub>jexo</sub> = 52 fF、<i>m</i><sub>jex</sub> = 0.25、<i>V</i><sub>jex</sub> = 0.75 V。从图 5.38 可以看出，提取的 <i>C</i><sub>ex</sub> 与由 (5.96) 计算的建模数据吻合良好。</p>
+
+<p>基极—集电极电容 <i>C</i><sub>bc</sub> 的特性如图 5.39 与图 5.40 所示。可以观察到，在恒定 <i>V</i><sub>CE</sub> 下 <i>C</i><sub>bc</sub> 随 <i>I</i><sub>B</sub> 的增大而减小，并且它是基极—集电极偏置电压的弱函数。<i>C</i><sub>bc</sub> 随电流的减小归因于电流引起的基极—集电极结耗尽层的展宽，以及电子速度调制引起的空间电荷随 <i>V</i><sub>cb</sub> 的变化。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.39.png" alt="VCE = 2 V 时提取的 Cbc 随频率的变化">
+  <div class="cap"><b>图 5.39</b> <i>V</i><sub>CE</sub> = 2 V 时提取的 <i>C</i><sub>bc</sub> 随频率的变化</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.40.png" alt="提取的 Cbc 随 IB 与 VCE 的变化">
+  <div class="cap"><b>图 5.40</b> 提取的 <i>C</i><sub>bc</sub> 随 <i>I</i><sub>B</sub> 与 <i>V</i><sub>CE</sub> 的变化</div>
+</div>
+
+<p>图 5.41 给出了本征电阻 <i>R</i><sub>bi</sub> 的提取结果。可以发现，在线性区内 <i>R</i><sub>bi</sub> 看起来与偏置无关，原因是线性区内 <i>V</i><sub>BE</sub> 的变化非常小（0.65–0.75 V）且与 <i>V</i><sub>CE</sub> 无关。实际上，<i>R</i><sub>bi</sub> 是偏置电压 <i>V</i><sub>BE</sub> 的函数（如图 5.42 所示），截止条件与有源条件之间的巨大差异验证了这一观点。<i>R</i><sub>bi</sub> 可以用经验多项式表达式建模：</p>
+
+<div class="eq"><span class="math-display">\[R_{bi} = A_{0} + A_{1}V_{be} + A_{2}V_{be}^{2} + A_{3}V_{be}^{3}, \quad V_{be} = V_{BE} - I_{B}R_{bx} + I_{E}R_{e}\]</span><span class="eqno">(5.97)</span></div>
+
+<p>多项式系数的数值为：<i>A</i><sub>0</sub> = 49.3、<i>A</i><sub>1</sub> = −6.5、<i>A</i><sub>2</sub> = 192.67、<i>A</i><sub>3</sub> = 14.7。从图 5.42 可以看出，提取的 <i>R</i><sub>bi</sub> 与由 (5.97) 计算的建模数据吻合良好。还值得注意的是，InP 基 HBT 的本征电阻高于 GaAs 基 HBT，并且只依赖于 <i>V</i><sub>BE</sub> 的绝对值。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.41.png" alt="VCE = 2 V 时提取的 Rbi 随频率的变化">
+  <div class="cap"><b>图 5.41</b> <i>V</i><sub>CE</sub> = 2 V 时提取的 <i>R</i><sub>bi</sub> 随频率的变化</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.42.png" alt="建模与实测 Rbi 随 VBE 的比较">
+  <div class="cap"><b>图 5.42</b> 建模与实测 <i>R</i><sub>bi</sub> 随 <i>V</i><sub>BE</sub> 的比较</div>
+</div>
+
+<p>图 5.43、图 5.44、图 5.45 与图 5.46 给出了基极—发射极结电阻 <i>R</i><sub>be</sub> 与电容 <i>C</i><sub>be</sub> 的提取结果。可以观察到非常平坦的频率响应，这归功于所有外部元件的精确提取，反映了真实的物理情形。图 5.47a、b 与 c 比较了 InP HBT 在 50 MHz–40 GHz 频率范围内、三种不同偏置条件（<i>I</i><sub>B</sub> = 40、120、200 μA，<i>V</i><sub>CE</sub> = 2 V）下实测与建模的 <i>S</i> 参数，在整个频率范围内都获得了极好的一致性。建模与实测数据对应的截止频率 <i>f</i><sub>t</sub> 性能比较如图 5.48 所示。可以观察到，在两种不同偏置条件（<i>I</i><sub>B</sub> = 40 与 120 μA，<i>V</i><sub>CE</sub> = 2 V）下，<i>f</i><sub>t</sub> 分别为 45 GHz 与 65 GHz。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.43.png" alt="VCE = 2 V 时提取的 Rbe 随频率的变化">
+  <div class="cap"><b>图 5.43</b> <i>V</i><sub>CE</sub> = 2 V 时提取的 <i>R</i><sub>be</sub> 随频率的变化</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.44.png" alt="提取的 Rbe 随 IB 与 VCE 的变化">
+  <div class="cap"><b>图 5.44</b> 提取的 <i>R</i><sub>be</sub> 随 <i>I</i><sub>B</sub> 与 <i>V</i><sub>CE</sub> 的变化</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.45.png" alt="VCE = 2 V 时提取的 Cbe 随频率的变化">
+  <div class="cap"><b>图 5.45</b> <i>V</i><sub>CE</sub> = 2 V 时提取的 <i>C</i><sub>be</sub> 随频率的变化</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.46.png" alt="提取的 Cbe 随 IB 与 VCE 的变化">
+  <div class="cap"><b>图 5.46</b> 提取的 <i>C</i><sub>be</sub> 随 <i>I</i><sub>B</sub> 与 <i>V</i><sub>CE</sub> 的变化</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.47.png" alt="InP HBT 建模与实测 S 参数的比较">
+  <div class="cap"><b>图 5.47</b> InP HBT 建模与实测 <i>S</i> 参数的比较。偏置条件：(a) <i>I</i><sub>B</sub> = 40 μA、<i>V</i><sub>CE</sub> = 2 V；(b) <i>I</i><sub>B</sub> = 120 μA、<i>V</i><sub>CE</sub> = 2 V；(c) <i>I</i><sub>B</sub> = 200 μA、<i>V</i><sub>CE</sub> = 2 V</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.48.png" alt="建模与实测 H21 参数的比较">
+  <div class="cap"><b>图 5.48</b> 建模与实测 <i>H</i><sub>21</sub> 参数的比较</div>
+</div>
+
+<h3 id="s5-6-2">5.6.2 混合法</h3>
+
+<p>以最小化实测与建模 <i>S</i> 参数随频率之差为目标的数值优化方法，其精度会随优化方法与初始值的不同而变化，并且可能给出非物理、非唯一的等效电路元件数值。HBT 等效电路参数提取的解析方法已有论述。遗憾的是，无论采用半解析法还是全解析法，这些方法对本征基极—发射极结电容 <i>C</i><sub>be</sub> 的提取精度都不能令人满意，主要原因是本征基极—发射极电阻 <i>R</i><sub>be</sub> 在整个频率范围内占主导地位，因此 <i>C</i><sub>be</sub> 的数值对优化过程不敏感，用全解析法提取时会带来较大的统计离散。本节将介绍一种确定基极—发射极结电容 <i>C</i><sub>be</sub> 的混合方法，它基于常规 T 型与 π 型等效电路拓扑之间的关系，使 <i>C</i><sub>be</sub> 的精度得到了很大提高。</p>
+
+<p>由 (5.29) 至 (5.32) 可以找到两种电路拓扑之间的一一对应关系。然而，π 型参数是频率相关的，这在高频时变得明显。也就是说，π 型与 T 型等效电路模型只有在低频下才是相互兼容的。低频下 π 型与 T 型等效电路模型之间的关系可写为：</p>
+
+<div class="eq"><span class="math-display">\[g_{mo} = \frac{\alpha_{o}}{R_{be}}\]</span><span class="eqno">(5.98)</span></div>
+<div class="eq"><span class="math-display">\[\tau_{\pi} = \tau_{T}\]</span><span class="eqno">(5.99)</span></div>
+<div class="eq"><span class="math-display">\[C_{\pi} = C_{be} + g_{mo}\tau_{\pi}\]</span><span class="eqno">(5.100)</span></div>
+<div class="eq"><span class="math-display">\[R_{\pi} = \frac{R_{be}}{1 - g_{mo}R_{be}}\]</span><span class="eqno">(5.101)</span></div>
+
+<p>如前所述，混合 T 型模型中的本征基极—发射极结电容 <i>C</i><sub>be</sub> 很难用半解析法或全解析法确定。相比之下，混合 π 型中的本征基极—发射极电容 <i>C</i><sub>π</sub> 可以精确提取，因为本征基极—发射极电阻 <i>R</i><sub>π</sub> 与 <i>C</i><sub>π</sub> 处于同一数量级。因此，<i>C</i><sub>be</sub> 可由 (5.98) 至 (5.101) 得到。由 (5.99) 可知，低频下渡越时间 <i>τ</i><sub>T</sub> 与 <i>τ</i><sub>π</sub> 相等。然而，采用解析提取法时，<i>τ</i><sub>T</sub> 的精度优于 <i>τ</i><sub>π</sub>，在低频尤其如此。为了高精度地得到 <i>C</i><sub>be</sub>，必须用 <i>τ</i><sub>T</sub> 代替 <i>τ</i><sub>π</sub>。因此，<i>C</i><sub>be</sub> 的公式可写为</p>
+
+<div class="eq"><span class="math-display">\[C_{be} = C_{\pi} - g_{mo}\tau_{T}\]</span><span class="eqno">(5.102)</span></div>
+
+<p>或</p>
+
+<div class="eq"><span class="math-display">\[C_{be} = C_{\pi} - \frac{\alpha_{o}}{R_{be}}\tau_{T}\]</span><span class="eqno">(5.103)</span></div>
+
+<p>其中</p>
+
+<div class="eq"><span class="math-display">\[C_{\pi} = \frac{\mathrm{Im}\left(Y_{11} + Y_{12}\right)}{\omega}\]</span><span class="eqno">(5.104)</span></div>
+<div class="eq"><span class="math-display">\[g_{mo} = Y_{21} - Y_{12}\]</span><span class="eqno">(5.105)</span></div>
+<div class="eq"><span class="math-display">\[\alpha_{o} = \alpha(\omega)\Big|_{\omega\to 0} = \frac{Y_{21} - Y_{12}}{Y_{11} + Y_{21}}\Bigg|_{\omega\to 0}\]</span><span class="eqno">(5.106)</span></div>
+<div class="eq"><span class="math-display">\[\omega_{\alpha} = \frac{\omega\left|\alpha(\omega)\right|}{\sqrt{\alpha_{o}^{2} - \left|\alpha(\omega)\right|^{2}}}\]</span><span class="eqno">(5.107)</span></div>
+<div class="eq"><span class="math-display">\[\tau_{T} = -\frac{1}{\omega}\,\mathrm{arctg}\!\left(\frac{\mathrm{Im}\!\left(\dfrac{Y_{21} - Y_{12}}{Y_{11} + Y_{21}}\right)}{\mathrm{Re}\!\left(\dfrac{Y_{21} - Y_{12}}{Y_{11} + Y_{21}}\right)}\right) + \frac{1}{\omega}\,\mathrm{arctg}\,\frac{\omega}{\omega_{\alpha}}\]</span><span class="eqno">(5.108)</span></div>
+
+<p>其中 <i>Y</i><sub><i>ij</i></sub>（<i>i</i>, <i>j</i> = 1, 2）表示图 5.3 与图 5.4 中虚线框的 <i>Y</i> 参数。</p>
+
+<p>图 5.49 给出了 <i>τ</i><sub>T</sub> 与 <i>τ</i><sub>π</sub> 的提取结果。显然，<i>τ</i><sub>T</sub> 的精度远优于 <i>τ</i><sub>π</sub>。<i>g</i><sub>mo</sub> 与 <i>α</i><sub>o</sub>/<i>R</i><sub>be</sub> 的比较如图 5.50 所示，二者在低频下几乎相等。图 5.51 给出了基于 T 型电路拓扑、用直接提取法得到的 <i>C</i><sub>be</sub>。可以发现，<i>C</i><sub>be</sub> 的确定精度不足以提取非线性电容模型的参数。采用混合提取法得到的相应结果如图 5.52 所示，<i>C</i><sub>be</sub> 的精度得到了显著改善。图 5.53 给出了不同偏置条件 <i>V</i><sub>be</sub> 下提取的 <i>C</i><sub>be</sub>，并用著名的耗尽电容公式对其建模。在截止条件下，<i>C</i><sub>be</sub> 的数值很容易从截止模式 <i>S</i> 参数测量中提取。从图 5.53 可以看出，提取的 <i>C</i><sub>be</sub> 与建模数据吻合良好。电容模型参数为：<i>C</i><sub>jbeo</sub> = 48 fF、<i>m</i><sub>jbe</sub> = 0.42、<i>V</i><sub>jbe</sub> = 0.684 V。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.49.png" alt="提取的 τπ 与 τT 随频率的变化">
+  <div class="cap"><b>图 5.49</b> 提取的 <i>τ</i><sub>π</sub> 与 <i>τ</i><sub>T</sub> 随频率的变化。偏置条件：<i>I</i><sub>b</sub> = 100 μA、<i>V</i><sub>ce</sub> = 2 V</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.50.png" alt="gmo 与 αo/Rbe 随频率的比较">
+  <div class="cap"><b>图 5.50</b> <i>g</i><sub>mo</sub> 与 <i>α</i><sub>o</sub>/<i>R</i><sub>be</sub> 随频率的比较。偏置条件：<i>I</i><sub>b</sub> = 100 μA、<i>V</i><sub>ce</sub> = 2 V</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.51.png" alt="用 T 型电路拓扑提取的 Cbe">
+  <div class="cap"><b>图 5.51</b> 用 T 型电路拓扑提取的 <i>C</i><sub>be</sub>。偏置条件：<i>V</i><sub>ce</sub> = 2 V</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.52.png" alt="用 π 型电路拓扑提取的 Cbe">
+  <div class="cap"><b>图 5.52</b> 用 π 型电路拓扑提取的 <i>C</i><sub>be</sub></div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.53.png" alt="建模与实测 Cbe 随 Vbe 的比较">
+  <div class="cap"><b>图 5.53</b> 建模与实测 <i>C</i><sub>be</sub> 随 <i>V</i><sub>be</sub> 的比较</div>
+</div>
+
+<h2 id="s5-7">5.7 半解析法</h2>
+
+<p>在所有外部元件都得到之后，本征元件可以直接确定。然而，有时只有器件的 <i>S</i> 参数可用，难以按照前述方法提取所有外部元件。在这种情况下，半解析法非常有用 [38]，本征元件被表示为外部元件的函数。假设由集总元件构成的等效电路在整个测量频率范围内有效，则以本征元件的方差作为优化准则，通过迭代确定外部元件。更详细的步骤如下：首先，用开集电极法确定串联电感与电阻，即 <i>L</i><sub>b</sub>、<i>L</i><sub>c</sub>、<i>L</i><sub>e</sub>、<i>R</i><sub>bx</sub>、<i>R</i><sub>c</sub> 与 <i>R</i><sub>e</sub>。在去嵌入 <i>C</i><sub>pc</sub>、<i>R</i><sub>c</sub> 与 <i>L</i><sub>c</sub> 的影响之后，由 <i>C</i><sub>pb</sub>、<i>L</i><sub>b</sub>、<i>L</i><sub>e</sub>、<i>R</i><sub>bx</sub> 与 <i>R</i><sub>e</sub> 扩展的本征部分（如图 5.54 所示）的开路 <i>Z</i> 参数可表示如下：</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.54.png" alt="由 Cpb、Lb、Le、Rbx 与 Re 扩展的本征部分">
+  <div class="cap"><b>图 5.54</b> 由 <i>C</i><sub>pb</sub>、<i>L</i><sub>b</sub>、<i>L</i><sub>e</sub>、<i>R</i><sub>bx</sub> 与 <i>R</i><sub>e</sub> 扩展的本征部分</div>
+</div>
+
+<div class="eq"><span class="math-display">\[Z_{11} = \frac{Z_{11}^{I}}{1 + j\omega C_{pb}Z_{11}^{I}}\]</span><span class="eqno">(5.109)</span></div>
+<div class="eq"><span class="math-display">\[Z_{12} = \frac{Z_{12}^{I}}{1 + j\omega C_{pb}Z_{11}^{I}}\]</span><span class="eqno">(5.110)</span></div>
+<div class="eq"><span class="math-display">\[Z_{21} = \frac{Z_{21}^{I}}{1 + j\omega C_{pb}Z_{11}^{I}}\]</span><span class="eqno">(5.111)</span></div>
+<div class="eq"><span class="math-display">\[Z_{22} = Z_{22}^{I} + \frac{j\omega C_{pb}\Delta Z^{I}}{1 + j\omega C_{pb}Z_{11}^{I}}\]</span><span class="eqno">(5.112)</span></div>
+
+<p>其中</p>
+
+<div class="eq"><span class="math-display">\[Z_{11}^{I} = \frac{\left(C_{bcp} + C_{exp}\right)R_{bi}}{C_{bcp} + C_{exp} + j\omega R_{bi}C_{bcp}C_{exp}} + \frac{1}{j\omega C_{bep}} + R_{e} + R_{bx} + j\omega\left(L_{b} + L_{e}\right)\]</span><span class="eqno">(5.113)</span></div>
+<div class="eq"><span class="math-display">\[Z_{12}^{I} = \frac{R_{bi}C_{exp}}{C_{bcp} + C_{exp} + j\omega R_{bi}C_{bcp}C_{exp}} + \frac{1}{j\omega C_{bep}} + R_{e} + j\omega L_{e}\]</span><span class="eqno">(5.114)</span></div>
+<div class="eq"><span class="math-display">\[Z_{21}^{I} = Z_{12}^{I}\]</span><span class="eqno">(5.115)</span></div>
+<div class="eq"><span class="math-display">\[Z_{22}^{I} = \frac{\dfrac{C_{exp}}{R_{bi}} + \dfrac{1}{j\omega}}{C_{bcp} + C_{exp} + j\omega R_{bi}C_{bcp}C_{exp}} + \frac{1}{j\omega C_{bep}} + R_{e} + j\omega L_{e}\]</span><span class="eqno">(5.116)</span></div>
+<div class="eq"><span class="math-display">\[\Delta Z^{I} = Z_{11}^{I}Z_{22}^{I} - Z_{12}^{I}Z_{21}^{I}\]</span><span class="eqno">(5.117)</span></div>
+
+<p>由于 <i>C</i><sub>bcp</sub> + <i>C</i><sub>exp</sub> 与 <i>C</i><sub>pb</sub> + <i>C</i><sub>bep</sub> 可以由低频 <i>Y</i> 参数得到，只剩三个未知参数待定。经过简单计算并忽略二阶小量后，得到下列方程：</p>
+
+<div class="eq"><span class="math-display">\[\mathrm{Re}\left(Z_{11}\right) = \frac{\left(R_{bx} + R_{e}\right)C_{bep}}{C_{2}} + \frac{R_{bi}C_{bep}^{2}}{C_{2}^{2}}\]</span><span class="eqno">(5.118)</span></div>
+<div class="eq"><span class="math-display">\[\mathrm{Re}\left(Z_{11} - Z_{12}\right) = \frac{R_{bi}C_{bcp}C_{bep} + R_{bx}C_{1}C_{bep}}{C_{1}C_{2}}\]</span><span class="eqno">(5.119)</span></div>
+<div class="eq"><span class="math-display">\[\mathrm{Im}\left(\frac{Z_{11}}{Z_{22} - Z_{12}}\right) = \frac{R_{bi}\left(C_{1}C_{bep}^{2} + C_{1}C_{bep}C_{bcp} - C_{2}C_{bcp}^{2}\right)}{C_{2}^{2}} + \frac{\left(R_{bx} + R_{e}\right)\left[C_{1}C_{bep}\left(C_{1} + C_{bep}\right) - C_{1}^{2}C_{2}\right]}{C_{2}^{2}}\]</span><span class="eqno">(5.120)</span></div>
+
+<p>把 (5.118) 与 (5.119) 代入 (5.120)，可以得到关于 <i>C</i><sub>bep</sub> 的多项式方程：</p>
+
+<div class="eq"><span class="math-display">\[aC_{bep}^{3} + bC_{bep}^{2} + cC_{bep} + d = 0\]</span><span class="eqno">(5.121)</span></div>
+
+<p>其中</p>
+
+<div class="eq"><span class="math-display">\[a = -\frac{C_{1}}{C_{2}}\left(R_{bx} + R_{e}\right)^{2}\]</span></div>
+<div class="eq"><span class="math-display">\[b = C_{1}\mathrm{Re}\left(Z_{11}\right)\left(R_{bx} + R_{e}\right) - C_{2}\left(R_{bx} + R_{e}\right)^{2} - C_{1}\left(R_{bx} + R_{e}\right)m\]</span></div>
+<div class="eq"><span class="math-display">\[c = C_{1}C_{2}\mathrm{Re}\left(Z_{11}\right)m - C_{2}\left(R_{bx} + R_{e}\right)n + 2C_{1}C_{2}\left(R_{bx} + R_{e}\right)\mathrm{Re}\left(Z_{11}^{I} - Z_{12}^{I}\right)\]</span></div>
+<div class="eq"><span class="math-display">\[d = C_{2}^{2}\mathrm{Re}\left(Z_{11}\right)n - C_{2}\left[C_{1}\mathrm{Re}\left(Z_{11}^{I} - Z_{12}^{I}\right)\right]^{2}\]</span></div>
+<div class="eq"><span class="math-display">\[m = \left(R_{bx} + R_{e}\right)\frac{C_{1}}{C_{2}} - \left(R_{bx} + R_{e}\right) - R_{bx}\frac{C_{1}}{C_{2}}\]</span></div>
+<div class="eq"><span class="math-display">\[n = C_{1}\mathrm{Re}\left(Z_{11}\right) + \mathrm{Re}\left(Z_{11}^{I} - Z_{12}^{I}\right)\frac{C_{1}^{2}}{C_{2}} - \left(R_{bx} + R_{e}\right)\frac{C_{1}^{2}}{C_{2}} - \mathrm{Im}\left(\frac{Z_{11}^{I}}{Z_{22}^{I} - Z_{12}^{I}}\right)\]</span></div>
+<div class="eq"><span class="math-display">\[C_{1} = C_{bcp} + C_{exp}, \quad C_{2} = C_{pb} + C_{bep}\]</span></div>
+
+<p>一般而言，<i>C</i><sub>be</sub> 会有三个解，其中两个是非物理的（复数或大于 <i>C</i><sub>2</sub>）。物理解是实数解中较小的那个。随后，把 <i>C</i><sub>bep</sub> 的数值代入 (5.118) 与 (5.119)，所有未知参数便都得以确定。</p>
+
+<p>此外，提取得到的寄生元件可以作为优化过程的初始猜测值，用解析法确定的本征元件被表示为寄生元件的函数。迭代过程的流程图如图 5.55 所示。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.55.png" alt="迭代提取算法流程图">
+  <div class="cap"><b>图 5.55</b> 迭代提取算法流程图</div>
+</div>
+
+<p>InP HBT 在低频下提取的电容 <i>C</i><sub>pc</sub>、<i>C</i><sub>bcp</sub> + <i>C</i><sub>exp</sub> 与 <i>C</i><sub>pb</sub> + <i>C</i><sub>bep</sub> 如图 5.56 所示。图 5.57 给出了 InP HBT 的 Re(<i>Z</i><sub>11</sub>)、Re(<i>Z</i><sub>11</sub> − <i>Z</i><sub>12</sub>) 与 Im[<i>Z</i><sub>11</sub>/(<i>Z</i><sub>22</sub> − <i>Z</i><sub>12</sub>)] 随频率的变化，可以观察到相当恒定的数值。为了消除二阶效应，Re(<i>Z</i><sub>11</sub>)、Re(<i>Z</i><sub>11</sub> − <i>Z</i><sub>12</sub>) 与 Im[<i>Z</i><sub>11</sub>/(<i>Z</i><sub>22</sub> − <i>Z</i><sub>12</sub>)] 应在中频段提取。这样，(5.121) 中 <i>C</i><sub>be</sub> 多项式方程的所有系数都可得到，<i>C</i><sub>pb</sub> 也可直接提取。串联电感与电阻，即 <i>L</i><sub>b</sub>、<i>L</i><sub>c</sub>、<i>L</i><sub>e</sub>、<i>R</i><sub>bx</sub>、<i>R</i><sub>c</sub> 与 <i>R</i><sub>e</sub>，用开集电极法确定。上述模型参数作为优化的初始值，本征元件被表示为寄生元件的函数。图 5.58、图 5.59 与图 5.60 比较了 InP HBT 在 50 MHz–40 GHz 频率范围内、三种不同偏置条件（<i>I</i><sub>B</sub> = 20、100、200 μA，<i>V</i><sub>CE</sub> = 2 V）下实测与建模的 <i>S</i> 参数，建模 <i>S</i> 参数与实测结果吻合得非常好。</p>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.56.png" alt="截止条件下 InP HBT 提取的电容">
+  <div class="cap"><b>图 5.56</b> 截止条件下 InP HBT 提取的电容</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.57.png" alt="截止条件下 InP HBT 的 Re(Z11)、Re(Z11 − Z12) 与 Im[Z11/(Z22 − Z12)] 随频率的变化">
+  <div class="cap"><b>图 5.57</b> 截止条件下 InP HBT 的 Re(<i>Z</i><sub>11</sub>)、Re(<i>Z</i><sub>11</sub> − <i>Z</i><sub>12</sub>) 与 Im[<i>Z</i><sub>11</sub>/(<i>Z</i><sub>22</sub> − <i>Z</i><sub>12</sub>)] 随频率的变化</div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.58.png" alt="InP HBT 建模与实测 S 参数的比较（IB = 20 μA）">
+  <div class="cap"><b>图 5.58</b> InP HBT 建模与实测 <i>S</i> 参数的比较。偏置条件：<i>I</i><sub>B</sub> = 20 μA、<i>V</i><sub>CE</sub> = 2 V。(a) <i>S</i><sub>11</sub>、(b) <i>S</i><sub>12</sub>、(c) <i>S</i><sub>21</sub> 与 (d) <i>S</i><sub>22</sub></div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.59.png" alt="InP HBT 建模与实测 S 参数的比较（IB = 100 μA）">
+  <div class="cap"><b>图 5.59</b> InP HBT 建模与实测 <i>S</i> 参数的比较。偏置条件：<i>I</i><sub>B</sub> = 100 μA、<i>V</i><sub>CE</sub> = 2 V。(a) <i>S</i><sub>11</sub>、(b) <i>S</i><sub>12</sub>、(c) <i>S</i><sub>21</sub> 与 (d) <i>S</i><sub>22</sub></div>
+</div>
+
+<div class="figure">
+  <img src="ch5_figs/Figure_5.60.png" alt="InP HBT 建模与实测 S 参数的比较（IB = 200 μA）">
+  <div class="cap"><b>图 5.60</b> InP HBT 建模与实测 <i>S</i> 参数的比较。偏置条件：<i>I</i><sub>B</sub> = 200 μA、<i>V</i><sub>CE</sub> = 2 V。(a) <i>S</i><sub>11</sub>、(b) <i>S</i><sub>12</sub>、(c) <i>S</i><sub>21</sub> 与 (d) <i>S</i><sub>22</sub></div>
+</div>
+
+<h2 id="s5-8">5.8 小结</h2>
+
+<p>本章介绍了 HBT 器件的物理结构与工作概念，描述了小信号建模与参数提取方法，特别是焊盘电容、馈线电感、外部电阻与本征元件的确定方法。</p>
+
+<h2 id="s5-3">参考文献</h2>
+
+<ol class="refs">
+<li>Wei, C.-J. and Huang, C.M. (1995) Direct extraction of equivalent circuit parameters for heterojunction bipolar transistor. <i>IEEE Transactions on Microwave Theory and Techniques</i>, 43(9), 2035–2039.</li>
+<li>Teeter, D.A. and Curtice, W.R. (1997) Comparison of hybrid π and Tee HBT circuit topologies and their relationship to large signal modeling. <i>IEEE Microwave Symposium Digest, IEEE MTT-S</i>, 2, 375–378.</li>
+<li>Rudolph, M., Doerner, R., Heymann, P. and Lenk, F. (2002) Towards a unified method to implement transit-time effects in π-topology HBT compact models. <i>IEEE Microwave Symposium Digest</i>, 2, 997–1000.</li>
+<li>Tasker, P.J. and Fernandez-Barciela, M. (2002) HBT small signal T and π model extraction using a simple, robust and fully analytical procedure. <i>IEEE Microwave Symposium Digest</i>, 3, 2129–2132.</li>
+<li>Dvorak, M.W. and Bolognesi, C.R. (2003) On the accuracy of direct extraction of the heterojunction-bipolar-transistor equivalent-circuit model parameters <i>C</i><sub>π</sub>, <i>C</i><sub>bc</sub>, <i>R</i><sub>e</sub>. <i>IEEE Transactions on Microwave Theory and Techniques</i>, 51(6), 1640–1649.</li>
+<li>Gao, J., Li, X., Wang, H. and Boeck, G. (2005) An improved analytical method for determination of small signal equivalent circuit model parameters for InP/InGaAs HBTs. <i>IEE Proceedings - Circuit, Device and System</i>, 152(6), 661–666.</li>
+<li>Das, M.B. (1988) High frequency performance limitations of millimeter-wave heterojunction bipolar transistor. <i>IEEE Transactions on Electron Device</i>, 35(5), 604–614.</li>
+<li>Mason, S.J. (1954) Power gain in feedback amplifiers. <i>IRE Transactions on Circuit Theory</i>, CT-I, 20–25.</li>
+<li>Vickes, H.-O. (1989) Comments on “Unilateral gain of heterojunction bipolar transistors at microwave frequencies”. <i>IEEE Transactions on Electron Devices</i>, 36(9), 1861–1862.</li>
+<li>Gupta, M.S. (1992) Power gain in feedback amplifiers, a classic revisited. <i>IEEE Transactions on Microwave Theory and Techniques</i>, 40(5), 864–2879.</li>
+<li>Rollet, J.M. (1962) Stability and power gain invariants in linear two-ports. <i>IEEE Transactions on Circuit Theory</i>, CT-9, 29–32.</li>
+<li>Chang, K., Bahl, I. and Nair, V. (2002) <i>RF and Microwave Circuit and Component Design for Wireless</i>, John Wiley &amp; Sons, Inc., New York.</li>
+<li>Kurishima, K. (1996) An analytical expression of fmax for HBT's. <i>IEEE Transactions on Electron Device</i>, 43, 2074–2079.</li>
+<li>Wang, H., Ng, G.I., Zheng, H. et al. (2000) Demonstration of aluminum-free metamorphic InP/In<sub>0.53</sub>Ga<sub>0.47</sub>As/InP double heterojunction bipolar transistors on GaAs substrates. <i>IEEE Electron Device Letter</i>, 21(9), 379–381.</li>
+<li>Wang, H. and Ng, G.I. (2000) Current transient in polyimide-passivated InP/InGaAs heterojunction bipolar transistors: systematic experiments and physical model. <i>IEEE Transactions on Electron Devices</i>, 47(12), 2261–2269.</li>
+<li>Costa, D., Liu, W.U. and Harris, J.S., Jr (1991) Direct extraction of the GaAs/AlGaAs heterojunction bipolar transistors small-signal equivalent circuit. <i>IEEE Transactions on Electron Devices</i>, 38, 2018–2024.</li>
+<li>Samelis, A. and Pavlidis, D. (1997) DC to high-frequency HBT-model parameter evaluation using impedance block conditioned optimization. <i>IEEE Transactions on Microwave Theory and Techniques</i>, 45, 886–897.</li>
+<li>Li, B., Prasad, S., Yang, L.-W. and Wang, S.C. (1998) A semianalytical parameter-extraction procedure for HBT equivalent circuit. <i>IEEE Transactions on Microwave Theory and Techniques</i>, 46, 1427–1435.</li>
+<li>Sotoodeh, M., Sozzi, L., Vinay, A. et al. (2000) Stepping toward standard methods of small-signal parameter extraction for HBT's. <i>IEEE Transactions on Microwave Theory and Techniques</i>, 47, 1139–1151.</li>
+<li>Bousnina, S., Mandeville, P., Kouki, A.B., Surridge, R. et al. (2002) Direct parameter-extraction method for HBT small-signal model. <i>IEEE Transactions on Microwave Theory and Techniques</i>, 50(2), 529–536.</li>
+<li>Sheinman, B., Wasige, E., Rudolph, M. et al. (2002) A peeling algorithm for extraction of the HBT small-signal equivalent circuit. <i>IEEE Transactions on Microwave Theory and Techniques</i>, 50(12), 2814–2810.</li>
+<li>Ciacoletto, L.J. (1972) Measurement of emitter and collector series resistance. <i>IEEE Transactions on Electron Devices</i>, ED-19(5), 692–693.</li>
+<li>Gobert, Y., Tasker, P.J. and Bachem, K.H.A. (1997) Physical, yet simple, small-signal equivalent circuit for the heterojunction bipolar transistor. <i>IEEE Transactions on Microwave Theory and Techniques</i>, 45(1), 149–153.</li>
+<li>Maas, S.A. and Tait, D. (1992) Parameter-extraction method for heterojunction bipolar transistors. <i>IEEE Microwave Guided Wave Letters</i>, 2(12), 502–504.</li>
+<li>Gao, J., Li, X., Wang, H. and Boeck, G. (2005) An approach for determination of extrinsic resistances for metamorphic InP/InGaAs HBTs equivalent circuit model. <i>IEE Proceedings - Microwaves, Antennas and Propagation</i>, 152(2), 195–200.</li>
+<li>Gao, J., Li, X., Yang, H., Wang, H. et al. (2003) An approach to determine Rbx and Rc for InP HBT using cutoff mode measurement. <i>European Microwave Week, GAAS Conference</i>, 1, 145–147.</li>
+<li>Linder, M., Ingvarson, F., Jeppson, K. et al. (2000) Extraction of emitter and base series resistances of bipolar transistors from a single DC measurement. <i>IEEE Transactions on Semiconductor Manufacturing</i>, 13, 119–126.</li>
+<li>Ingvarson, F., Linder, M. and Jeppson, K.O. (2003) Extraction of the base and emitter resistances in bipolar transistors using an accurate base resistance model. <i>IEEE Transactions on Semiconductor Manufacturing</i>, 16, 228–232.</li>
+<li>Ning, T. and Tang, D. (1984) Method for determining the emitter and base series resistances of bipolar transistors. <i>IEEE Transactions on Electron Devices</i>, ED-31, 409–412.</li>
+<li>Scott, J.B. (2003) New method to measure emitter resistance of heterojunction bipolar transistors. <i>IEEE Transactions on Electron Devices</i>, 50(9), 1970–1973.</li>
+<li>Filensky, W. and Beneking, H. (1981) New technique for determination of static emitter and collector series resistances of Bipolar transistor. <i>Electronics Letters</i>, 17(4), 503–504.</li>
+<li>Schaper, U. and Holzapfl, B. (1995) Analytic parameter extraction of the HBT equivalent circuit with T-like topology from measured S parameters. <i>IEEE Transactions on Microwave Theory and Techniques</i>, 43, 493–498.</li>
+<li>Pehlke, D.R. and Pavlidis, D. (1992) Evaluation of the factors determining HBT high-frequency performance by direct analysis of S-parameter data. <i>IEEE Transactions on Microwave Theory and Techniques</i>, 40, 2367–2373.</li>
+<li>Lee, S., Ryum, B.R. and Kang, S.W. (1994) A new parameter extraction technique for small-signal equivalent circuit of polysilicon emitter bipolar transistors. <i>IEEE Transactions on Electron Devices</i>, 41, 233–238.</li>
+<li>Rios, J.M.M., Lunardi, L.M., Chandrasekhar, S. and Miyamoto, Y. (1997) A self-consistent method for complete small signal parameter extraction of InP-based heterojunction bipolar transistors (HBTs). <i>IEEE Transactions on Microwave Theory and Techniques</i>, 45, 39–44.</li>
+<li>Spiegel, S.J., Ritter, D., Hamm, R.A. et al. (1995) Extraction of the InP/GaInAs heterojunction bipolar transistors small signal equivalent circuit. <i>IEEE Transactions on Electron Devices</i>, 42, 1059–1064.</li>
+<li>Ouslimani, A., Gaubert, J., Hafdallah, H. et al. (2002) Direct extraction of linear HBT-model parameters using nine analytical expression blocks. <i>IEEE Transactions on Microwave Theory and Techniques</i>, 50(1), 218–221.</li>
+<li>Gao, J., Li, X., Wang, H. and Boeck, G. (2006) An approach to determine small signal model parameters for InP-based heterojunction bipolar transistors. <i>IEEE Transactions on Semiconductor Manufacturing</i>, 19(1), 138–145.</li>
+</ol>
+
+</body>
+</html>

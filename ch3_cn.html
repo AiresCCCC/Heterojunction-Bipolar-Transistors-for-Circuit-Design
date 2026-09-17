@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: true
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+  },
+  chtml: {
+    scale: 1
+  },
+  startup: {
+    pageReady: () => MathJax.startup.defaultPageReady().then(() => {
+      const updateFormulaOverflow = () => {
+        document.querySelectorAll('.math-display').forEach((formula) => {
+          const math = formula.querySelector('mjx-math') || formula.querySelector('mjx-container');
+          const mathWidth = math ? math.getBoundingClientRect().width : 0;
+          formula.classList.toggle('math-overflow', mathWidth > formula.clientWidth + 4);
+        });
+      };
+      updateFormulaOverflow();
+      if (window.ResizeObserver) {
+        const observer = new ResizeObserver(updateFormulaOverflow);
+        document.querySelectorAll('.math-display').forEach((formula) => observer.observe(formula));
+      }
+    })
+  }
+};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第3章 双极结型晶体管的建模与参数提取方法 — HBT 中文译本</title>
+<style>
+/* ===== HBT 中文译本 · 统一标准样式 ===== */
+  :root {
+    --ink: #1a1a1a; --muted: #5a6470; --accent: #2a4d8f; --rule: #d8dce2;
+    --bg: #ffffff; --soft: #f7f8fa;
+    --serif: "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", "STSong", "SimSun", Georgia, "Times New Roman", serif;
+    --sans: "Source Han Sans SC", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", "Heiti SC", Helvetica, Arial, sans-serif;
+    --mono: "Cambria Math", "STIX Two Math", "Latin Modern Math", "Times New Roman", serif;
+  }
+  html, body { background: var(--bg); color: var(--ink); }
+  body { font-family: var(--serif); max-width: 880px; margin: 0 auto;
+         padding: 46px 26px 64px; line-height: 1.78; }
+  header { border-bottom: 1px solid var(--rule); padding-bottom: 18px; margin-bottom: 30px; }
+  .kicker { font-family: var(--sans); font-size: 0.78em; letter-spacing: 0.14em;
+            text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: var(--serif); font-size: 1.7em; line-height: 1.4;
+       margin: 12px 0 6px; font-weight: 600; }
+  .ch-num { font-family: var(--sans); color: var(--accent); font-size: 0.85em;
+            letter-spacing: 0.08em; }
+  .credit { font-family: var(--sans); font-size: 0.78em; color: var(--muted);
+            margin-top: 18px; line-height: 1.55; }
+  h2 { font-family: var(--serif); font-size: 1.32em; margin: 36px 0 14px;
+       border-bottom: 1px solid var(--rule); padding-bottom: 6px; font-weight: 600; }
+  h3 { font-family: var(--serif); font-size: 1.12em; margin: 26px 0 10px; font-weight: 600; }
+  h4 { font-family: var(--serif); font-size: 1.0em; margin: 22px 0 8px;
+       font-weight: 600; color: #222; }
+  p { margin: 0 0 12px; text-align: justify; }
+  ul { margin: 6px 0 14px; padding-left: 22px; }
+  ol { margin: 6px 0 14px; padding-left: 24px; }
+  li { margin: 2px 0; }
+  .figure { margin: 22px auto; text-align: center; }
+  .figure img { max-width: 100%; height: auto; border: 1px solid var(--rule);
+                border-radius: 2px; background: #fff; }
+  .figure .cap { font-family: var(--sans); font-size: 0.86em; color: var(--muted);
+                 margin-top: 8px; line-height: 1.5; }
+  .eq { position: relative; display: flex; align-items: center;
+        justify-content: center; margin: 10px 0; }
+  /* 公式编号：绝对定位贴正文右边界，垂直居中 */
+  .eq .eqno { position: absolute; right: 0; top: 50%;
+              transform: translateY(-50%); z-index: 2;
+              padding-left: .5em; background: var(--bg);
+              font-family: var(--sans);
+              font-size: 0.88em; color: var(--muted); white-space: nowrap; }
+  /* 公式本体留出编号通道，避免宽公式与右对齐编号重叠 */
+  .eq .math-display { display: block; flex: 0 1 auto; width: max-content; min-width: 0;
+                       max-width: calc(100% - 7.5em); overflow-x: hidden; overflow-y: hidden;
+                       padding: 2px 0; box-sizing: border-box; }
+  .eq .eqtag { font-family: var(--sans); font-size: 0.88em;
+               color: var(--muted); margin-left: 10px; white-space: nowrap; }
+  .eqdef { display: flex; align-items: center; gap: 18px; margin: 6px 0 12px; }
+  .eqdef .math-display { flex: 0 1 auto; width: max-content; max-width: 46%;
+                         overflow-x: hidden; overflow-y: hidden; padding: 2px 0;
+                         box-sizing: border-box; }
+  .math-display.math-overflow { overflow-x: auto; }
+  .eqdef .meaning { flex: 1; font-size: 0.95em; line-height: 1.4; color: #222; }
+  .src { font-family: var(--sans); font-size: 0.76em; color: var(--muted);
+         margin-top: 4px; }
+  ol.refs { font-family: var(--sans); font-size: 0.85em; line-height: 1.6;
+            color: #333; padding-left: 26px; }
+  ol.refs li { margin: 4px 0; }
+  @media (max-width: 700px) {
+    body { padding: 24px 16px 40px; }
+    .eq .eqno { position: static; transform: none; margin-left: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="kicker">HBT for Circuit Design · 中文翻译节选</div>
+  <h1><span class="ch-num">第 3 章</span><br>双极结型晶体管的建模与<br>参数提取方法</h1>
+  <p class="credit">
+    译自 <i>Heterojunction Bipolar Transistors for Circuit Design: Microwave Modeling
+    and Parameter Extraction</i>, First Edition. Jianjun Gao.<br>
+    © 2015 Higher Education Press. All rights reserved. Published 2015 by John Wiley &amp; Sons Singapore Pte Ltd.<br>
+    本译文仅用于学术研究目的，版权归原作者及出版方所有。
+  </p>
+</header>
+
+<p>1947 年，贝尔电话实验室发明的双极结型晶体管（BJT）开启了固态电路放大语音信号的时代。晶体管被定义为一种非线性三端有源半导体器件：两端之间的电流由第三端控制。晶体管是一种三端半导体器件，能够完成电子电路设计中两项最基本的功能：放大与开关。transistor 一词是 transfer 与 resistor 的合成词。双极晶体管的发明者 William Shockley、John Bardeen 与 Walter Brattain 因"对半导体的研究和发现晶体管效应"获得了 1956 年诺贝尔物理学奖——最初它是锗材料上的点接触单管。德州仪器的工作催生了第一只硅双极晶体管，以及后来的第一块集成电路。晶体管如今已繁衍出众多复杂类型，从至今仍被广泛使用的 BJT 到现代的 FET 器件。尽管 MOSFET 是使用最广泛的电子器件、CMOS 工艺是微波与射频电路设计的主流，BJT 器件依然在微电子中扮演关键角色——得益于其低成本、较高的工作频率、低噪声性能与大功率处理能力。BJT 还可与 MOSFET 结合，构成利用 MOSFET 高输入阻抗与低功耗、同时利用 BJT 极高频工作与大电流驱动能力的创新电路，这类工艺被称为 BiCMOS 工艺。</p>
+
+<p>众所周知，HBT 器件的基本工作机理与 BJT 非常相似。因此，在为 HBT 器件建立电路模型之前，先简要讨论涉及 pn 结二极管的 BJT 器件，对理解 HBT 器件的行为大有裨益。电路分析的精度取决于所用的器件模型；电路设计者必须透彻理解常用模型的来源以及各自所含的近似程度。本章的目标是介绍 pn 结二极管与 BJT 器件的微波/射频建模与参数提取技术。</p>
+
+<h2 id="s3-1">3.1 PN 结</h2>
+
+<p>通过引入杂质原子可以引发半导体电学特性的重大改变，这一过程称为掺杂。对 n 型掺杂而言，施主杂质原子向导带添入电子而不在价带产生空穴；对 p 型掺杂而言，受主原子在价带产生空穴而不在导带产生电子。半导体器件的工作本质上取决于半导体自身的物理行为。pn 结始终是半导体器件的基本构件，pn 结理论至今仍是半导体器件物理的基础。把 p 型半导体与 n 型半导体物理接触在一起，便得到研究有源半导体器件时最重要的概念之一：pn 结。它在单一硅晶体内通过形成不同掺杂区来制作：一个区域掺入受主杂质原子形成 p 区，相邻区域掺入施主原子形成 n 区。</p>
+
+<p>图 3.1 给出了未加外加电压时带电荷分布的 pn 结。其中 q 为电子电荷，N<sub>A</sub> 与 N<sub>D</sub> 分别为 p 侧与 n 侧的掺杂浓度。注意图 3.1 中 N<sub>A</sub> 高于 N<sub>D</sub>，这是实际中的典型情形。由于 p 区空穴浓度高、n 区空穴浓度低，空穴越过结从 p 侧向 n 侧扩散，留下带负电的空间受主离子；同理，电子越过结从 n 侧向 p 侧扩散，留下带正电的施主离子。图 3.1 中给出了净带正电与净带负电的两个区域，它们统称为空间电荷区，又称耗尽区（不含任何可动电荷）。n 侧的净正电荷与 p 侧的净负电荷之间建立起一个电场，它会阻碍空穴向 n 区、电子向 p 区的扩散。事实上，耗尽区上由内建电场造成的电压降如同一个势垒，空穴与电子的扩散电流必须克服它。该电势势垒称为内建电势势垒，记作 V<sub>bi</sub>。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.1.png" alt="未加外加电压时带电荷分布的 pn 结">
+  <div class="cap"><b>图 3.1</b> 未加外加电压时带电荷分布的 pn 结</div>
+</div>
+
+<p>内建电压 V<sub>bi</sub> 可以用 p 侧与 n 侧的掺杂浓度表示：</p>
+
+<div class="eq"><span class="math-display">\[V_{\mathrm{bi}} = V_t \ln\!\left(\frac{N_A N_D}{n_i^{2}}\right)\]</span><span class="eqno">(3.1)</span></div>
+
+<p>其中 V<sub>t</sub> = kT/q，称为热电压；q 是电子电荷，k 是玻尔兹曼常数，T 是绝对温度（通常取 290 K），n<sub>i</sub> 是本征载流子浓度。可以看出，内建电压 V<sub>bi</sub> 既与掺杂浓度有关，也与温度有关。</p>
+
+<p>对于不同的半导体材料（如 Si、Ge、GaAs），即使掺杂浓度相同，内建电压也不同——这是由本征载流子浓度的显著差异造成的。室温下，硅材料的 n<sub>i</sub> 典型值为 1.5 × 10<sup>10</sup> cm<sup>−3</sup>，GaAs 材料为 1.8 × 10<sup>6</sup> cm<sup>−3</sup>，Ge 材料为 2.4 × 10<sup>13</sup> cm<sup>−3</sup>。图 3.2 给出了硅与 GaAs 材料的内建电压随掺杂浓度 N<sub>A</sub> 与 N<sub>D</sub> 的变化。对硅而言，V<sub>bi</sub> 在 0.6–0.9 V 范围内；对 GaAs 则为 1.1–1.3 V。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.2.png" alt="（a）硅与（b）GaAs 的内建电压">
+  <div class="cap"><b>图 3.2</b> （a）硅与（b）GaAs 的内建电压</div>
+</div>
+
+<p>空间电荷区的宽度由两部分组成：正空间电荷区向 n 型半导体的延伸 W<sub>n</sub>，以及负空间电荷区向 p 型半导体的延伸 W<sub>p</sub>。W<sub>n</sub> 与 W<sub>p</sub> 可用 N<sub>A</sub> 与 N<sub>D</sub> 表示 [1]：</p>
+
+<div class="eq"><span class="math-display">\[W_n = \sqrt{\frac{2\varepsilon V_{\mathrm{bi}}}{q}\,\frac{N_D}{N_A\,(N_A + N_D)}}\]</span><span class="eqno">(3.2)</span></div>
+<div class="eq"><span class="math-display">\[W_p = \sqrt{\frac{2\varepsilon V_{\mathrm{bi}}}{q}\,\frac{N_A}{N_D\,(N_A + N_D)}}\]</span><span class="eqno">(3.3)</span></div>
+
+<p>其中 ε = ε<sub>r</sub>ε<sub>o</sub> 为介电常数，ε<sub>o</sub> 为真空介电常数，ε<sub>r</sub> 为相对介电常数。对硅 ε<sub>r</sub> = 11.7，对 GaAs ε<sub>r</sub> = 13.1。</p>
+
+<p>空间电荷区的总宽度 W 是式 (3.2) 与 (3.3) 之和：</p>
+
+<div class="eq"><span class="math-display">\[W = \sqrt{\frac{2\varepsilon V_{\mathrm{bi}}}{q}\,\frac{N_A + N_D}{N_A N_D}}\]</span><span class="eqno">(3.4)</span></div>
+
+<p>图 3.3 给出了硅与 GaAs 材料的空间电荷区宽度随掺杂浓度 N<sub>A</sub> 与 N<sub>D</sub> 的变化。由于净受主浓度 N<sub>A</sub> 大于净施主浓度 N<sub>D</sub>，空间电荷区宽度 W 随 N<sub>D</sub> 的减小而增大，而随 N<sub>A</sub> 的变化大致保持不变。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.3.png" alt="（a）硅与（b）GaAs 的空间电荷区宽度">
+  <div class="cap"><b>图 3.3</b> （a）硅与（b）GaAs 的空间电荷区宽度</div>
+</div>
+
+<h2 id="s3-2">3.2 PN 结二极管</h2>
+
+<h3>3.2.1 基本概念</h3>
+
+<p>二极管是最基本的半导体器件之一，它既是构建晶体管的基础，也是最简单、最基本的非线性元件。本节将介绍 pn 结在三种不同偏置条件下的能带图与空间电荷区宽度：</p>
+
+<ul>
+  <li>零偏置：不加任何外加电压；</li>
+  <li>反向偏置：外加电压使 p 侧电位高于 n 侧；</li>
+  <li>正向偏置：外加电压使 n 侧电位高于 p 侧。</li>
+</ul>
+
+<p>众所周知，对本征半导体而言，导带中电子的浓度等于价带中空穴的浓度，并且若电子与空穴的有效质量相等，本征费米能级恰好位于带隙中央（如图 3.4 所示）。掺入施主与受主杂质原子会改变材料中电子与空穴的分布 [2]。对 n 型半导体，随着施主浓度升高，费米能级向导带靠近（如图 3.5 所示）；对 p 型半导体，随着受主浓度升高，费米能级向价带靠近（如图 3.6 所示）。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.4.png" alt="本征半导体的能带图">
+  <div class="cap"><b>图 3.4</b> 本征半导体的能带图</div>
+</div>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.5.png" alt="n 型半导体的能带图">
+  <div class="cap"><b>图 3.5</b> n 型半导体的能带图</div>
+</div>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.6.png" alt="p 型半导体的能带图">
+  <div class="cap"><b>图 3.6</b> p 型半导体的能带图</div>
+</div>
+
+<p>在开路条件（即不存在外加电流）下，pn 结处于热平衡——费米能级在整个系统中处处相等。由于导带与价带的位置会随 p 侧与 n 侧的费米能级而改变，电子能量在穿越空间电荷区时随距离按二次规律变化。图 3.7 给出了 pn 结在端口开路时的能带图，其中 E<sub>c</sub> 与 E<sub>v</sub> 分别为导带能量与价带能量，E<sub>Fn</sub> 与 E<sub>Fp</sub> 分别为 n 型与 p 型半导体的费米能级。耗尽区上的电压降即为内建电压 V<sub>bi</sub>。若在 p 区与 n 区之间施加外加电压，系统将不再处于平衡状态，费米能级在整个系统中也不再恒定。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.7.png" alt="端口开路时 pn 结的能带图">
+  <div class="cap"><b>图 3.7</b> 端口开路时 pn 结的能带图</div>
+</div>
+
+<p>现在考虑反向偏置情形（对 p 区相对 n 区施加负电压，即 V<sub>R</sub> &lt; 0）：外加的反向偏压 V<sub>R</sub> 的方向是增强势垒电压，确实如此——它把有效势垒电压提高到 V<sub>bi</sub> − V<sub>R</sub>。此时 n 侧的费米能级低于 p 侧的费米能级。这减少了向 n 区扩散的空穴数与向 p 区扩散的电子数。图 3.8 给出了施加反向偏压 V<sub>R</sub> 时 pn 结的能带图。此时空间电荷区的宽度可由式 (3.4) 中的 V<sub>bi</sub> 替换为 V<sub>bi</sub> − V<sub>R</sub> 得到：</p>
+
+<div class="eq"><span class="math-display">\[W = \sqrt{\frac{2\varepsilon\,(V_{\mathrm{bi}} - V_R)}{q}\,\frac{N_A + N_D}{N_A N_D}}\]</span><span class="eqno">(3.5)</span></div>
+
+<p>接下来考虑正向偏置情形（对 p 区相对 n 区施加正电压，即 V<sub>F</sub> &gt; 0）：外加的正向偏压 V<sub>F</sub> 的方向是削弱内建电压，使势垒电压减小为 V<sub>bi</sub> − V<sub>F</sub>。图 3.9 给出了施加正向偏压 V<sub>F</sub> 时 pn 结的能带图。此时空间电荷区的宽度比零偏置时更窄，p 区与 n 区之间的势垒也降低了。空间电荷区的宽度可由式 (3.4) 中的 V<sub>bi</sub> 替换为 V<sub>bi</sub> − V<sub>F</sub> 得到：</p>
+
+<div class="eq"><span class="math-display">\[W = \sqrt{\frac{2\varepsilon\,(V_{\mathrm{bi}} - V_F)}{q}\,\frac{N_A + N_D}{N_A N_D}}\qquad V_{\mathrm{bi}} \ge V_F\]</span><span class="eqno">(3.6)</span></div>
+
+<p>由式 (3.5) 与 (3.6) 可见：空间电荷区宽度随反向偏压 V<sub>R</sub> 的增大而增大，随正向偏压 V<sub>F</sub> 的增大而减小。图 3.10 给出了硅基与 GaAs 基 pn 二极管在不同偏置条件下的空间电荷区宽度。注意当正向电压超过内建电压时，宽度将趋于零。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.8.png" alt="施加反向偏压时 pn 结的能带图">
+  <div class="cap"><b>图 3.8</b> 施加反向偏压时 pn 结的能带图</div>
+</div>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.9.png" alt="施加正向偏压时 pn 结的能带图">
+  <div class="cap"><b>图 3.9</b> 施加正向偏压时 pn 结的能带图</div>
+</div>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.10.png" alt="（a）硅基与（b）GaAs 基 pn 二极管在不同偏置下的空间电荷区宽度">
+  <div class="cap"><b>图 3.10</b> （a）硅基与（b）GaAs 基 pn 二极管在不同偏置下的空间电荷区宽度</div>
+</div>
+
+<p>图 3.11 给出了硅基与 GaAs 基 pn 二极管的 I–V 特性：正向偏置时电流是电压的指数函数，反向偏置时电流饱和到一个恒定值（饱和电流）。由于 GaAs 二极管的内建电压高于硅基二极管，GaAs 二极管 I–V 特性的拐点电压也高于硅二极管。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.11.png" alt="pn 二极管的 I–V 特性">
+  <div class="cap"><b>图 3.11</b> pn 二极管的 I–V 特性</div>
+</div>
+
+<h3>3.2.2 等效电路模型</h3>
+
+<p>本节给出一种由集总元件构成的简单结二极管模型，它既便于直观与解析的电路分析，也特别适合用计算机进行电路分析。利用该模型，对二极管开关瞬态的解析与计算机分析表明：它能复现开关电路中观察到的许多二极管现象。</p>
+
+<h4>3.2.2.1 非线性模型</h4>
+
+<p>图 3.12 给出了 pn 结二极管的典型非线性等效电路模型 [3]；该模型由两部分组成：</p>
+
+<ol>
+  <li><em>外征部分</em>：包括压焊点电容 C<sub>p</sub>、馈线电感 L<sub>s</sub> 与欧姆接触电阻 R<sub>s</sub>，这些都是线性元件；</li>
+  <li><em>本征部分</em>：包括空间电荷 Q<sub>D</sub> 与静态电流 I<sub>D</sub>。二极管的非线性主要源自这两个元件。</li>
+</ol>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.12.png" alt="pn 结二极管的非线性等效电路模型">
+  <div class="cap"><b>图 3.12</b> pn 结二极管的非线性等效电路模型</div>
+</div>
+
+<p>描述 pn 结二极管电流-电压关系（I–V 特性）的解析表达式可写为：</p>
+
+<div class="eq"><span class="math-display">\[I_D = I_s\left(\exp\frac{V_j}{n\,V_T} - 1\right)\]</span><span class="eqno">(3.7)</span></div>
+
+<p>其中理想发射系数 n 是一个附加参数，用于使模型与实际测量更加吻合；多数应用中取 1.0–2.0。V<sub>T</sub> 是称为热电压的常数：</p>
+
+<div class="eq"><span class="math-display">\[V_T = \frac{kT}{q}\]</span><span class="eqno">(3.8)</span></div>
+
+<p>k 是玻尔兹曼常数，1.38 × 10<sup>−23</sup> J/K；T 是二极管的绝对温度（K）（T = 273 K + 摄氏温度）；q 是电子电荷的量值（1.6 × 10<sup>−19</sup> C）。</p>
+
+<p>V<sub>j</sub> 是本征电压：</p>
+
+<div class="eq"><span class="math-display">\[V_j = V_D - I_D R_s\]</span><span class="eqno">(3.9)</span></div>
+
+<p>其中 V<sub>D</sub> 为外加电压，I<sub>D</sub> 为二极管电流。</p>
+
+<p>I<sub>s</sub> 是反向饱和电流，在给定温度下对某只二极管是常数。反向饱和电流 I<sub>s</sub> 也称"标度电流"，因为它与二极管的横截面积成正比。其解析表达式可由空穴扩散电流与电子扩散电流相加得到：</p>
+
+<div class="eq"><span class="math-display">\[I_s = qA_j\!\left(\frac{D_p\,p_{no}}{L_p} + \frac{D_n\,n_{po}}{L_n}\right)\]</span><span class="eqno">(3.10)</span></div>
+
+<p>其中 A<sub>j</sub> 是 pn 结二极管的横截面积，D<sub>n</sub>、D<sub>p</sub> 分别是少数载流子电子与少数载流子空穴的扩散系数；常数 L<sub>n</sub>、L<sub>p</sub> 分别称为少数载流子电子与空穴的扩散长度；n<sub>po</sub> 是 p 区的热平衡少数载流子电子浓度，p<sub>no</sub> 是 n 区的热平衡少数载流子空穴浓度。</p>
+
+<p>n<sub>po</sub> 与 p<sub>no</sub> 可用掺杂浓度表示：</p>
+
+<div class="eq"><span class="math-display">\[n_{po} = \frac{n_i^{2}}{N_A},\quad p_{no} = \frac{n_i^{2}}{N_D}\]</span><span class="eqno">(3.11)</span></div>
+
+<p>把 (3.11) 代入 (3.10)，得</p>
+
+<div class="eq"><span class="math-display">\[I_s = qA_j n_i^{2}\!\left(\frac{D_p}{L_p N_D} + \frac{D_n}{L_n N_A}\right)\]</span><span class="eqno">(3.12)</span></div>
+
+<p>电荷存储有两种形式：由掺杂浓度在耗尽区产生的电荷存储 Q<sub>j</sub>，以及注入中性区的少数载流子电荷产生的电荷存储 Q<sub>d</sub>。总电荷可表示为 Q<sub>j</sub> 与 Q<sub>d</sub> 之和：</p>
+
+<div class="eq"><span class="math-display">\[Q_D = Q_j + Q_d\]</span><span class="eqno">(3.13)</span></div>
+
+<div class="eq"><span class="math-display">\[Q_j = \sqrt{\frac{2q\varepsilon\,(V_{\mathrm{bi}} - V_j)\,N_A N_D}{N_A + N_D}}\]</span><span class="eqno">(3.14)</span></div>
+
+<div class="eq"><span class="math-display">\[Q_d = \tau_D I_D = \tau_D I_s\left(\exp\frac{qV_j}{nkT} - 1\right)\]</span><span class="eqno">(3.15)</span></div>
+
+<p>其中 I<sub>D</sub> 为二极管电流，τ<sub>D</sub> 为二极管的渡越时间。</p>
+
+<h4>3.2.2.2 线性模型</h4>
+
+<p>到目前为止所讨论的二极管模型保持了器件物理的严格非线性本质，因此可用于几乎任何电路条件下的静态与动态分析。若二极管工作在某个特定直流偏压点附近、而信号在该点附近的变化很小，则基于非线性模型的线性化构造一个线性小信号模型会非常方便。图 3.13 给出了 pn 结二极管对应的线性等效电路模型，其中 g<sub>d</sub> 为小信号电导，C<sub>j</sub> 与 C<sub>d</sub> 分别为结电容与扩散电容。与非线性模型相比，外征元件保持不变，本征部分变成了一个阻容（RC）网络。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.13.png" alt="pn 结二极管的线性等效电路模型">
+  <div class="cap"><b>图 3.13</b> pn 结二极管的线性等效电路模型</div>
+</div>
+
+<p>结电容 C<sub>j</sub> 的解析表达式为：</p>
+
+<div class="eq"><span class="math-display">\[C_j = \frac{dQ_j}{dV_j} = \sqrt{\frac{q\varepsilon\,N_A N_D}{2\,(V_{\mathrm{bi}} - V_j)\,(N_A + N_D)}}\]</span><span class="eqno">(3.16)</span></div>
+
+<p>在零偏置条件（V<sub>j</sub> = 0）下，结电容变为：</p>
+
+<div class="eq"><span class="math-display">\[C_{jo} = \sqrt{\frac{q\varepsilon\,N_A N_D}{2V_{\mathrm{bi}}\,(N_A + N_D)}}\]</span><span class="eqno">(3.17)</span></div>
+
+<p>把 (3.17) 代入 (3.16)，得</p>
+
+<div class="eq"><span class="math-display">\[C_j = \frac{C_{jo}}{\left(1 - \dfrac{V_j}{V_{\mathrm{bi}}}\right)^{m}}\qquad m = 0.5\]</span><span class="eqno">(3.18)</span></div>
+
+<p>其中 m 是一个称为缓变系数的常数，在商用电路仿真器（如 SPICE）中的默认值为 0.5，实际器件可调：其取值通常在 1/3 到 1/2 之间，取决于浓度从 p 侧到 n 侧的变化方式。</p>
+
+<p>扩散电容 C<sub>d</sub> 的解析表达式为：</p>
+
+<div class="eq"><span class="math-display">\[C_d = \frac{dQ_d}{dV_j} = \tau_D \frac{dI_D}{dV_j}= \frac{q\tau_D}{nkT}\,I_s \exp\frac{V_j}{nkT}\]</span><span class="eqno">(3.19)</span></div>
+
+<p>二极管的总电容是结电容 C<sub>j</sub> 与扩散电容 C<sub>d</sub> 之和，即 C<sub>t</sub> = C<sub>j</sub> + C<sub>d</sub>。图 3.14 给出了二极管电容随偏置电压变化的行为，可以得出两个重要结论：反向偏置时，结电容 C<sub>j</sub> 是主导分量；正向偏置时，C<sub>j</sub> 与 C<sub>d</sub> 同时占主导。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.14.png" alt="二极管电容随偏置电压的行为">
+  <div class="cap"><b>图 3.14</b> 二极管电容随偏置电压的行为</div>
+</div>
+
+<p>小信号电导 g<sub>d</sub> 等于电流 I<sub>D</sub> 对本征电压 V<sub>j</sub> 的导数：</p>
+
+<div class="eq"><span class="math-display">\[g_d = \frac{dI_D}{dV_j} = \frac{qI_s}{nkT}\exp\frac{V_j}{nkT}\]</span><span class="eqno">(3.20)</span></div>
+
+<p>反向偏置时，电流 I<sub>D</sub> 为负并趋近于饱和电流 I<sub>s</sub>，因此小信号电导 g<sub>d</sub> 为零。反之，正向偏置时电流 I<sub>D</sub> 远大于饱和电流 I<sub>s</sub>，电导 g<sub>d</sub> 近似等于 I<sub>D</sub>。</p>
+
+<h4>3.2.2.3 噪声模型</h4>
+
+<p>图 3.15 给出了 pn 结二极管的噪声等效电路模型，其中包含三种不同的噪声源：热噪声源、散粒噪声源与闪烁噪声源。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.15.png" alt="pn 结二极管的噪声等效电路模型">
+  <div class="cap"><b>图 3.15</b> pn 结二极管的噪声等效电路模型</div>
+</div>
+
+<p>热噪声又称 Johnson 噪声或 Nyquist 噪声，由热能引起电子随机运动而产生。大多数无源与有源器件中都能发现热噪声。电阻 R<sub>s</sub> 在频率范围 Δf 内的热噪声电流可表示如下：</p>
+
+<div class="eq"><span class="math-display">\[v_{R_s}^{2} = 4kT R_s \Delta f\]</span><span class="eqno">(3.21)</span></div>
+<div class="eq"><span class="math-display">\[i_{R_s}^{2} = \frac{4kT \Delta f}{R_s}\]</span><span class="eqno">(3.22)</span></div>
+
+<p>其中 Δf 为噪声带宽。温度下的一只含噪电阻可建模为 0 K 的理想无噪电阻串联一个噪声电压源（或建模为 0 K 的理想无噪电阻并联一个噪声电流源），如图 3.16 所示。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.16.png" alt="含噪电阻的等效模型：（a）串联模型与（b）并联模型">
+  <div class="cap"><b>图 3.16</b> 含噪电阻的等效模型：（a）串联模型；（b）并联模型</div>
+</div>
+
+<p>从源发射出的电子数目的涨落构成散粒噪声。散粒噪声发生在电子管或固态器件中电子越过结或其他不连续处时，常见于半导体器件（如 pn 结或晶体管）中，并与直流电流的平方根成正比。它有如下两个重要特征：</p>
+
+<ol>
+  <li>总与二极管和 BJT 中的直流电流流动相伴；</li>
+  <li>与频率无关（白噪声）。</li>
+</ol>
+
+<p>其噪声幅度表示为：</p>
+
+<div class="eq"><span class="math-display">\[i_d^{2} = 2q I_D \Delta f\]</span><span class="eqno">(3.23)</span></div>
+
+<p>其中 I<sub>d</sub> 为直流电流，q 为电子电荷。</p>
+
+<p>1/f 噪声存在于许多自然现象中，如核辐射、电子在导体中的流动，甚至存在于环境中。在电气工程中它又称闪烁噪声。闪烁噪声电流 i<sup>2</sup><sub>1/f</sub> 可表示为：</p>
+
+<div class="eq"><span class="math-display">\[i_{1/f}^{2} = \frac{k_f\,I_D^{\alpha_f}}{f}\,\Delta f\]</span><span class="eqno">(3.24)</span></div>
+
+<p>其中 k<sub>f</sub> 与 α<sub>f</sub> 为拟合系数。</p>
+
+<p>图 3.17 给出了 1/f 噪声电流随频率的变化：噪声功率随偏置电流的增大而增大；与热噪声和散粒噪声不同，闪烁噪声随频率降低而增大，在低频段与频率的反比关系几乎精确为 1/f。闪烁噪声本质上是随机的，但其频谱不平坦，因此不是白噪声。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.17.png" alt="1/f 噪声随频率的变化">
+  <div class="cap"><b>图 3.17</b> 1/f 噪声随频率的变化</div>
+</div>
+
+<h3>3.2.3 模型参数的确定</h3>
+
+<p>表 3.1 汇总了常用商用电路仿真器中 pn 结二极管模型的参数。确定全部模型参数后，等效电路模型即可用于预测二极管的静态与动态性能。下面将介绍一种用于确定静态模型参数的简单优化方法 [4]。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Table_3.1.png" alt="pn 结二极管模型的参数">
+  <div class="cap"><b>表 3.1</b> pn 结二极管模型的参数</div>
+</div>
+
+<p>由式 (3.7) 得</p>
+
+<div class="eq"><span class="math-display">\[V_j = n V_t \ln\!\left(\frac{I_D}{I_s}\right)\]</span><span class="eqno">(3.25)</span></div>
+
+<p>把 (3.9) 代入 (3.25)，得</p>
+
+<div class="eq"><span class="math-display">\[V_D = R_s I_D + a\ln(I_D) + b\]</span><span class="eqno">(3.26)</span></div>
+
+<p>其中</p>
+
+<div class="eq"><span class="math-display">\[a = n V_t\]</span></div>
+
+<div class="eq"><span class="math-display">\[b = -n V_t \ln(I_s)\]</span></div>
+
+<p>于是，若能确定三个未知参数 R<sub>s</sub>、a 与 b，则 n 与 I<sub>s</sub> 亦可随之导出。式 (3.26) 给出了产生电流 I<sub>D</sub> 所需的外加电压 V<sub>D</sub>；因此可用最小二乘法优化 R<sub>s</sub>、a 与 b。为此定义误差判据 X 如下：</p>
+
+<div class="eq"><span class="math-display">\[X = \sum_{i=1}^{m}\left[R_s I_D^{i} + a\ln\!\left(I_D^{i}\right) + b - V_D^{i}\right]^{2}\]</span><span class="eqno">(3.27)</span></div>
+
+<p>其中求和遍历 m 组由实验确定的 I<sub>D</sub> 与 V<sub>D</sub> 数据对。R<sub>s</sub>、a 与 b 的最优组合应使 X 取极小值，即</p>
+
+<div class="eq"><span class="math-display">\[\frac{\partial X}{\partial R_s} = \frac{\partial X}{\partial a} = \frac{\partial X}{\partial b} = 0\]</span><span class="eqno">(3.28)</span></div>
+
+<p>这组方程可写成：</p>
+
+<div class="eq"><span class="math-display">\[E \cdot Y = F\]</span><span class="eqno">(3.29)</span></div>
+
+<p>其中</p>
+
+<div class="eq"><span class="math-display">\[E = \begin{bmatrix}\displaystyle\sum_{i=1}^{m}\!\left[I_D^{i}\right]^{2} &amp; \displaystyle\sum_{i=1}^{m}\!I_D^{i}\ln\!\left(I_D^{i}\right) &amp; \displaystyle\sum_{i=1}^{m}\!I_D^{i} \\[1.2ex]\displaystyle\sum_{i=1}^{m}\!I_D^{i}\ln\!\left(I_D^{i}\right) &amp; \displaystyle\sum_{i=1}^{m}\!\ln^{2}\!\left(I_D^{i}\right) &amp; \displaystyle\sum_{i=1}^{m}\!\ln\!\left(I_D^{i}\right) \\[1.2ex]\displaystyle\sum_{i=1}^{m}\!I_D^{i} &amp; \displaystyle\sum_{i=1}^{m}\!\ln\!\left(I_D^{i}\right) &amp; m\end{bmatrix}\]</span></div>
+
+<div class="eq"><span class="math-display">\[Y^{\mathrm{T}} = \begin{bmatrix} R_s &amp; a &amp; b \end{bmatrix}\]</span></div>
+
+<div class="eq"><span class="math-display">\[F^{\mathrm{T}} = \begin{bmatrix}\displaystyle\sum_{i=1}^{m}\!I_D^{i}V_D^{i} &amp; \displaystyle\sum_{i=1}^{m}\!V_D^{i}\ln\!\left(I_D^{i}\right) &amp; \displaystyle\sum_{i=1}^{m}\!V_D^{i}\end{bmatrix}\]</span></div>
+
+<p>基于最小二乘拟合，可以确定三个未知参数 R<sub>s</sub>、a 与 b。图 3.18 给出了外征电阻 R<sub>s</sub> 对二极管电流的影响：在较低的外加电压范围内 R<sub>s</sub> 的影响可以忽略，因此要确定外征电阻 R<sub>s</sub> 需要较大的外加电压。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.18.png" alt="外征电阻 Rs 对二极管电流的影响">
+  <div class="cap"><b>图 3.18</b> 外征电阻 R<sub>s</sub> 对二极管电流的影响</div>
+</div>
+
+
+<h2 id="s3-3">3.3 BJT 的物理工作原理</h2>
+
+<p>本节开始描述 BJT 的物理工作机理。众所周知，它之所以被称为双极晶体管，是因为电子与空穴两种载流子的流动都参与器件工作。相比 FET 等其他类型晶体管，双极晶体管具有以下若干固有优势 [5]：</p>
+
+<ol>
+  <li>即使器件横向尺寸相对较大，也能获得很高的电流增益截止频率 <i>f</i><sub>T</sub>，因为电流是纵向流动的，流过各层，这些层的厚度可由外延、扩散或注入工艺轻易控制在亚微米量级；</li>
+  <li>每单位芯片面积具有很高的电流驱动能力，因为电流流经整个发射区；</li>
+  <li>跨导 <i>g</i><sub>m</sub> 很高，因为输入电压与输出电流之间呈指数关系；</li>
+  <li>输出电流开启的阈值电压控制得很好，因为开启电压对应于 pn 结的内建电势，它易于复现；</li>
+  <li>耐压能力强，因为易于建立厚的半导体区（集电区）来承受输出电压而不击穿。</li>
+</ol>
+
+<p>BJT 的另一项优势是较低的 1/<i>f</i> 噪声。图 3.19 给出了双极与场效应两类半导体器件的 1/<i>f</i> 噪声随频率的变化：可以观察到，闪烁噪声在 FET 中更为突出，而在 BJT 中较弱，且 FET 的转角频率高于 BJT。这意味着在设计低相位噪声器件方面，BJT 优于 FET。由于集电极-发射极电流受基极与发射极之间电流的控制，BJT 通常被描述为电流控制器件；与 FET 不同，BJT 是一种低输入阻抗器件。正是这种指数关系，使 BJT 的跨导高于 FET。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.19.png" alt="不同半导体器件的 1/f 噪声随频率变化">
+  <div class="cap"><b>图 3.19</b> 不同半导体器件的 1/<i>f</i> 噪声随频率变化</div>
+</div>
+
+<h3>3.3.1 器件结构</h3>
+
+<p>BJT 由三段半导体材料拼接而成，每段具有不同的掺杂浓度。三段可以是夹在 p<sup>+</sup> 与 p 层之间的薄 n 区，也可以是夹在 n<sup>+</sup> 与 n 层之间的 p 区，其中上标加号表示掺杂更浓的材料。相应地，所得到的 BJT 分别称为 PNP 与 NPN 晶体管。晶体管的每个半导体区都连接一个端子，分别标为发射极（E）、基极（B）与集电极（C）。晶体管由两个 pn 结构成：基极-发射极结与集电极-基极结，它们相距足够近因而彼此相互作用。从这个意义上讲，BJT 可视为两个背靠背的二极管。图 3.20 与图 3.21 分别给出了两类 BJT 的大致构造、电路符号与命名。</p>
+
+<p>图 3.22 给出了更为真实的 npn BJT 截面图与立体图。注意集电极实际上包围着发射极区，这就使得注入到薄基区的电子很难逃脱被收集。另外注意器件并不对称：尽管晶体管可能含有两个 n 区或两个 p 区，发射极与集电极中的杂质掺杂浓度不同，而且这些区的几何形状也可能大相径庭。通常发射极掺杂浓度最高，集电极掺杂浓度最低。图 3.23 给出了均匀掺杂 npn 与 PNP BJT 的理想掺杂分布，发射极、基极与集电极的典型掺杂浓度量级分别为 10<sup>19</sup>、10<sup>17</sup> 与 10<sup>15</sup> cm<sup>−3</sup>。</p>
+
+<p>npn BJT 的主要工艺步骤如下：</p>
+
+<ol>
+  <li>注入隐埋 n<sup>+</sup> 层（从 p 型衬底开始）。隐埋层的作用是降低集电极电阻；</li>
+  <li>生长外延层。目的是为构建 npn BJT 提供合适的 n 型掺杂；</li>
+  <li>基区 p 型扩散，以提供 p 型基区；</li>
+  <li>发射区 n<sup>+</sup> 扩散。这一步实现 n<sup>+</sup> 发射区与集电极的欧姆接触；</li>
+  <li>p<sup>+</sup> 欧姆接触。当基区掺杂浓度不足以单独形成低阻欧姆接触时，该步骤用以实现基区的欧姆接触。</li>
+</ol>
+
+<p>npn 与 PNP 晶体管是互补器件。我们将用 npn 晶体管来分析双极晶体管理论，但同样的基本原理也适用于 PNP 器件。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.20.png" alt="npn BJT 简化结构与电路符号">
+  <div class="cap"><b>图 3.20</b> npn BJT 简化结构与电路符号：（a）结构；（b）电路符号</div>
+</div>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.21.png" alt="PNP BJT 简化结构与电路符号">
+  <div class="cap"><b>图 3.21</b> PNP BJT 简化结构与电路符号：（a）结构；（b）电路符号</div>
+</div>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.22.png" alt="npn BJT 截面图与立体图">
+  <div class="cap"><b>图 3.22</b> npn BJT 结构：（a）截面图；（b）立体图</div>
+</div>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.23.png" alt="npn 与 PNP BJT 理想掺杂分布">
+  <div class="cap"><b>图 3.23</b> 均匀掺杂 BJT 的理想掺杂分布：（a）npn BJT；（b）PNP BJT</div>
+</div>
+
+<h3>3.3.2 工作模式</h3>
+
+<p>根据两个结（基极-发射极结与集电极-基极结）的偏置条件不同，可以得到 BJT 的不同工作模式。先约定如下符号：</p>
+
+<ul>
+  <li>BEJ = 基极-发射极结</li>
+  <li>BCJ = 集电极-基极结</li>
+  <li>FWD = 正向偏置</li>
+  <li>REV = 反向偏置</li>
+</ul>
+
+<p>如图 3.24 所示，五种工作模式的定义如下：</p>
+
+<ul>
+  <li>零模式（Zero mode）：<i>V</i><sub>BE</sub> = <i>V</i><sub>CE</sub> = 0</li>
+  <li>放大模式（Active mode）：<i>V</i><sub>BE</sub> &gt; 0，<i>V</i><sub>CE</sub> &gt; <i>V</i><sub>BE</sub></li>
+  <li>反模式（Inverse mode）：<i>V</i><sub>BE</sub> &lt; 0，<i>V</i><sub>CE</sub> &lt; <i>V</i><sub>BE</sub></li>
+  <li>饱和模式（Saturation mode）：<i>V</i><sub>BE</sub> &gt; 0，<i>V</i><sub>CE</sub> &lt; <i>V</i><sub>BE</sub></li>
+  <li>截止模式（Cutoff mode）：<i>V</i><sub>BE</sub> &lt; 0，<i>V</i><sub>CE</sub> &gt; <i>V</i><sub>BE</sub></li>
+</ul>
+
+<p>其中 <i>V</i><sub>BE</sub> 与 <i>V</i><sub>CB</sub> 是两个结上的电压。下面将分别讨论五种工作模式的能带图。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.24.png" alt="npn BJT 共射组态与五种工作模式">
+  <div class="cap"><b>图 3.24</b> npn BJT 共射组态（a）与五种工作模式（b）</div>
+</div>
+
+<h4>3.3.2.1 零模式</h4>
+
+<p>零模式下 BEJ 与 BCJ 均为零偏置，两个结处于热平衡态——费米能级在整个系统中处处相等。图 3.25 给出了 npn BJT 零模式下的能带图。事实上，发射极的较高掺杂浓度使 BEJ 处的势垒高于 BCJ。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.25.png" alt="npn BJT 零模式下的能带图">
+  <div class="cap"><b>图 3.25</b> npn BJT 零模式下的能带图</div>
+</div>
+
+<h4>3.3.2.2 放大模式</h4>
+
+<p>在 BJT 的五种工作模式中，放大模式最为重要。放大模式即 BEJ 正向偏置、BCJ 反向偏置的工作模式，也称为正向放大模式或正常工作模式。图 3.26 给出了 npn BJT 放大模式下的能带图与电子流向。由于基极-发射极结正偏，发射极的电子越过基极-发射极空间电荷区扩散进入基区；随后电子穿过基区扩散到反向偏置的基极-集电极空间电荷区。该空间电荷区中的电场将电子扫入集电区。扩散穿过基区的电子中，有一部分会与基区多数载流子空穴复合。但由于基区通常非常薄（小于 1 μm 量级）且是轻掺杂的 p 型层，只有少量电子会与基极电流提供的空穴复合。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.26.png" alt="npn BJT 放大模式下的能带图与电子流向">
+  <div class="cap"><b>图 3.26</b> npn BJT 放大模式下的能带图与电子流向</div>
+</div>
+
+<p>发射极注入效率因子 η 是 BJT 的一个重要性能指标，其解析表达式近似可写为 [2]</p>
+
+<div class="eq"><span class="math-display">\[\eta = \frac{I_{nE}}{I_{nE} + I_{pE}} \approx \frac{1}{1 + \dfrac{N_B}{N_E}\,\dfrac{D_E}{D_B}\,\dfrac{W_B}{W_E}}\]</span><span class="eqno">(3.30)</span></div>
+
+<p>其中 <i>I</i><sub>nE</sub> 是基区中少数载流子电子的扩散电流，<i>I</i><sub>pE</sub> 是发射区中少数载流子空穴的扩散电流；<i>N</i><sub>B</sub> 与 <i>N</i><sub>E</sub> 分别是基区与发射区的掺杂浓度；<i>D</i><sub>B</sub> 与 <i>D</i><sub>E</sub> 分别是基区与发射区中少数载流子的扩散系数；<i>W</i><sub>B</sub> 与 <i>W</i><sub>E</sub> 分别是中性基区与中性发射区的宽度。由式 (3.30) 可以看出：减小基区的宽度与掺杂浓度，可以提高发射极注入效率因子 η。</p>
+
+<h4>3.3.2.3 饱和模式</h4>
+
+<p>饱和模式是通常在模拟电路中应避免的工作区，因为此时晶体管的增益很低；它通常在处理开关电路时起重要作用。饱和模式包含 BEJ 与 BCJ 同时正偏，集电极-发射极电压非常小（通常小于 0.3 V）。与零偏置条件（零模式）相比，两个结的势垒高度均下降。电子从发射极净流向集电极，这意味着基极-发射极势垒低于 BCJ。图 3.27 给出了 npn BJT 饱和模式下的能带图与电子流向。在该模式下，基极电流的增大不再引起集电极电流的进一步增大。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.27.png" alt="npn BJT 饱和模式下的能带图与电子流向">
+  <div class="cap"><b>图 3.27</b> npn BJT 饱和模式下的能带图与电子流向</div>
+</div>
+
+<h4>3.3.2.4 截止模式</h4>
+
+<p>截止模式即 BEJ 与 BCJ 都反向偏置的工作模式。与零偏置条件（零模式）相比，两个结的势垒高度均升高，电子不会从发射极净流向集电极。图 3.28 给出了 npn BJT 截止模式下的能带图。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.28.png" alt="npn BJT 截止模式下的能带图与电子流向">
+  <div class="cap"><b>图 3.28</b> npn BJT 截止模式下的能带图与电子流向</div>
+</div>
+
+<h4>3.3.2.5 反模式</h4>
+
+<p>反模式即 BEJ 反向偏置、BCJ 正向偏置的工作模式，发射极与集电极的角色互换。电子从集电极穿过 BCJ 扩散到基区，再扩散进入发射区。需要注意的是，基极-集电极面积通常远大于基极-发射极面积，因此并非所有注入电子都会被发射极收集。图 3.29 给出了 npn BJT 反模式下的能带图与电子流向。图 3.30 给出了 <i>I</i>–<i>V</i> 特性与不同工作模式。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.29.png" alt="npn BJT 反模式下的能带图与电子流向">
+  <div class="cap"><b>图 3.29</b> npn BJT 反模式下的能带图与电子流向</div>
+</div>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.30.png" alt="npn BJT 的 I–V 特性">
+  <div class="cap"><b>图 3.30</b> npn BJT 的 <i>I</i>–<i>V</i> 特性</div>
+</div>
+
+<h3>3.3.3 基区宽度调制</h3>
+
+<p>实际上中性基区宽度 <i>W</i><sub>B</sub> 是基极-集电极电压 <i>V</i><sub>BC</sub> 的函数，因为向基区延伸的空间电荷区宽度随基极-集电极电压变化而变化。因此基区宽度调制即基极-集电极电压变化所引起的基区宽度变化，又称 Early 效应（Early effect）。基区宽度调制的解析表达式为</p>
+
+<div class="eq"><span class="math-display">\[W_B = W_{B0}\!\left(1 + \frac{V_{BC}}{V_A}\right)\]</span><span class="eqno">(3.31)</span></div>
+
+<p>其中 <i>W</i><sub>B0</sub> 为 <i>V</i><sub>BC</sub> = 0 时的基区宽度。</p>
+
+<p>图 3.31 给出了某典型双极晶体管的集电极特性。理想情况下，集电极电流 <i>I</i><sub>C</sub> 与基极-集电极电压 <i>V</i><sub>BC</sub> 无关，因而曲线斜率为零，即 d<i>I</i><sub>C</sub>/d<i>V</i><sub>CE</sub> = 0。然而由于 Early 效应，电流-电压曲线存在一个非零斜率，说明集电极电流将随集电极-发射极电压增大而增大。所有直线的斜率使得它们将交汇于一个负电压 <i>V</i><sub>A</sub>，称为 Early 电压。该电压可用来表征晶体管的输出阻抗：</p>
+
+<div class="eq"><span class="math-display">\[g_o = \frac{d I_C}{d V_{CE}} = \frac{I_C}{V_A + V_{CE}}\]</span><span class="eqno">(3.32)</span></div>
+
+<p>其中 <i>g</i><sub>o</sub> 为输出电导。Early 电压 <i>V</i><sub>A</sub> 是晶体管规格表中常见的参数，其典型取值在 100–300 V 范围内。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.31.png" alt="基区宽度调制对 Early I–V 特性的影响">
+  <div class="cap"><b>图 3.31</b> 基区宽度调制对 Early <i>I</i>–<i>V</i> 特性的影响</div>
+</div>
+
+<h3>3.3.4 大注入与电流集边</h3>
+
+<p>对于 BJT 器件有两个重要的直流参数：共发射极电流增益 β 与共基极电流增益 α。</p>
+
+<p>共发射极电流增益 β 的定义为集电极电流与基极电流之比：</p>
+
+<div class="eq"><span class="math-display">\[\beta = \frac{I_C}{I_B}\]</span><span class="eqno">(3.33)</span></div>
+
+<p>共基极电流增益 α 的定义为集电极电流与发射极电流之比：</p>
+
+<div class="eq"><span class="math-display">\[\alpha = \frac{I_C}{I_E} = \frac{\beta}{\beta + 1}\]</span><span class="eqno">(3.34)</span></div>
+
+<p>图 3.32 给出了共发射极电流增益 β 随集电极电流 <i>I</i><sub>C</sub> 的变化；β 随电流的变化可分为三个区。区 I 为低电流区，β 随 <i>I</i><sub>C</sub> 增大而增大；区 II 为中电流区，β 大致保持常数；区 III 为高电流区，β 随电流增大而下降。共发射极电流增益 β 在高电流下下降的原因是基极-集电极耗尽区内的电子浓度变得可与背景掺杂离子浓度相比拟，导致基区有效宽度急剧增加。这又称为 Kirk 效应（Kirk effect）或基区推出效应（base pushout）。结果是基极电阻随电流变化。在另一极端，低电流下，β 的减小可能是由于基极-发射极耗尽区内复合引起的过剩电流。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.32.png" alt="共发射极电流增益随集电极电流变化">
+  <div class="cap"><b>图 3.32</b> 共发射极电流增益随集电极电流变化</div>
+</div>
+
+<p>另一种效应是发射极集边效应（emitter crowding），它源于基极接触寄生电阻的分布性质，使得靠近基极接触的基极-发射极电压更高。靠近发射极边缘注入的电子多于中心处，导致发射极电流向边缘聚集。图 3.33 给出了 npn BJT 显示出发射极集边效应的截面图；可以将晶体管切成若干并联的小单元，并将每段基区电阻合并为一个等效外部电阻。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.33.png" alt="npn BJT 发射极集边效应的截面图">
+  <div class="cap"><b>图 3.33</b> npn BJT 发射极集边效应的截面图</div>
+</div>
+
+<h2 id="s3-4">3.4 等效电路模型</h2>
+
+<p>BJT 最常用的非线性模型有 [3]：</p>
+
+<ul>
+  <li>Ebers–Moll 模型，即 E–M 模型；</li>
+  <li>Gummel–Poon 模型，即 G–P 模型。</li>
+</ul>
+
+<p>E–M 模型是双极晶体管的理想模型，可用于正向放大模式、反向放大模式、饱和与截止。E–M 模型被广泛用于双极晶体管电路静态行为的仿真。该模型的一个主要优点是其数学简洁性。其主要缺陷是忽略了晶体管中可能发生的多种现象：基区大注入、发射极集边、击穿、集电极空间电荷限制流、结过渡区中的明显净复合等。</p>
+
+<h3>3.4.1 E–M 模型</h3>
+
+<p>E–M 模型是最流行的大信号模型之一。尽管该模型最早于 1954 年 12 月提出，但理解其基本模型需求以及它向更复杂大信号模型的扩展、绝大多数小信号模型的推导，仍然离不开它。E–M 模型包含两个二极管与两个电流源；两个二极管分别代表基极-发射极与基极-集电极二极管。电流源取决于流过每个二极管的电流。E–M 模型有两种版本：注入版本与传输版本。两种版本在数学上是等价的。</p>
+
+<p>图 3.34 给出了注入版本的 E–M 模型：两个极性相对的正向与反向二极管，以及两个电流控制的电流源，它们使两个二极管通过基极接触相互耦合。端子电流可用正向与反向参考电流（<i>I</i><sub>F</sub> 与 <i>I</i><sub>R</sub>）表示为：</p>
+
+<div class="eq"><span class="math-display">\[I_B = (1 - \alpha_F)\,I_F + (1 - \alpha_R)\,I_R\]</span><span class="eqno">(3.35)</span></div>
+<div class="eq"><span class="math-display">\[I_C = \alpha_F I_F - I_R\]</span><span class="eqno">(3.36)</span></div>
+<div class="eq"><span class="math-display">\[I_E = -I_F + \alpha_R I_R\]</span><span class="eqno">(3.37)</span></div>
+
+<p>且</p>
+
+<div class="eq"><span class="math-display">\[I_F = I_{ES}\!\left(\exp\frac{q V_{BE}}{k T} - 1\right)\]</span><span class="eqno">(3.38)</span></div>
+<div class="eq"><span class="math-display">\[I_R = I_{CS}\!\left(\exp\frac{q V_{BC}}{k T} - 1\right)\]</span><span class="eqno">(3.39)</span></div>
+
+<p>其中 <i>I</i><sub>ES</sub> 与 <i>I</i><sub>CS</sub> 分别是 BEJ 与 BCJ 的饱和电流，α<sub>F</sub> 与 α<sub>R</sub> 分别是正向与反向共基极电流增益。</p>
+
+<p>当 BEJ 正向偏置而 BCJ 反向偏置（器件工作在放大模式）时，反向参考电流 <i>I</i><sub>R</sub> 可以忽略（如图 3.35a 所示）。类似地，当 BEJ 反向偏置而 BCJ 正向偏置（器件工作在放大模式）时，正向参考电流 <i>I</i><sub>F</sub> 可以忽略（如图 3.35b 所示）。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.34.png" alt="Ebers–Moll 模型：注入版本">
+  <div class="cap"><b>图 3.34</b> Ebers–Moll 模型：注入版本</div>
+</div>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.35.png" alt="BJT 工作在放大模式与反模式的大信号模型">
+  <div class="cap"><b>图 3.35</b> BJT 大信号模型：（a）放大模式；（b）反模式</div>
+</div>
+
+<p>与注入版本相比，传输版本更受计算机仿真青睐。图 3.36 给出了传输版本的 E–M 模型。端子电流可用参考电流（<i>I</i><sub>EC</sub> 与 <i>I</i><sub>CC</sub>）表示为：</p>
+
+<div class="eq"><span class="math-display">\[I_B = \!\left(\frac{1}{\alpha_F} - 1\right) I_{CC} + \!\left(\frac{1}{\alpha_R} - 1\right) I_{EC}\]</span><span class="eqno">(3.40)</span></div>
+<div class="eq"><span class="math-display">\[I_C = I_{CC} - \frac{I_{EC}}{\alpha_R}\]</span><span class="eqno">(3.41)</span></div>
+<div class="eq"><span class="math-display">\[I_E = -\frac{I_{CC}}{\alpha_F} + I_{EC}\]</span><span class="eqno">(3.42)</span></div>
+
+<p>且</p>
+
+<div class="eq"><span class="math-display">\[I_{CC} = I_S\!\left(\exp\frac{q V_{BE}}{k T} - 1\right)\]</span><span class="eqno">(3.43)</span></div>
+<div class="eq"><span class="math-display">\[I_{EC} = I_S\!\left(\exp\frac{q V_{BC}}{k T} - 1\right)\]</span><span class="eqno">(3.44)</span></div>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.36.png" alt="Ebers–Moll 模型：传输版本">
+  <div class="cap"><b>图 3.36</b> Ebers–Moll 模型：传输版本</div>
+</div>
+
+<p>众所周知，一个完整的大信号模型由静态模型、电荷模型与寄生模型组成。图 3.37 给出了 BJT 的完整 E–M 大信号模型。电荷存储通过引入两类电容来建模：两个非线性结电容 <i>C</i><sub>JC</sub> 与 <i>C</i><sub>JE</sub>，以及两个非线性扩散电容 <i>C</i><sub>DC</sub> 与 <i>C</i><sub>DE</sub>。<i>R</i><sub>B</sub>、<i>R</i><sub>C</sub> 与 <i>R</i><sub>E</sub> 分别是基极、集电极与发射极的外征电阻。</p>
+
+<p>端子电流可表示如下：</p>
+
+<div class="eq"><span class="math-display">\[I_B = \frac{I_{CC}}{\beta_F} + \frac{I_{EC}}{\beta_R}\]</span><span class="eqno">(3.45)</span></div>
+<div class="eq"><span class="math-display">\[I_C = I_{CT} - \frac{I_{EC}}{\beta_R}\]</span><span class="eqno">(3.46)</span></div>
+<div class="eq"><span class="math-display">\[I_E = -I_{CT} - \frac{I_{CC}}{\beta_F}\]</span><span class="eqno">(3.47)</span></div>
+
+<p>且</p>
+
+<div class="eq"><span class="math-display">\[I_{CT} = I_{CC} - I_{EC} = I_S\!\left(\exp\frac{q V_{BE}}{k T} - \exp\frac{q V_{BC}}{k T}\right)\]</span><span class="eqno">(3.48)</span></div>
+
+<p>β<sub>F</sub> 与 β<sub>R</sub> 分别是正向与反向共发射极电流增益，可用 α<sub>F</sub> 与 α<sub>R</sub> 表示：</p>
+
+<div class="eq"><span class="math-display">\[\beta_F = \frac{\alpha_F}{1 - \alpha_F}\]</span><span class="eqno">(3.49)</span></div>
+<div class="eq"><span class="math-display">\[\beta_R = \frac{\alpha_R}{1 - \alpha_R}\]</span><span class="eqno">(3.50)</span></div>
+
+<p>电荷存储的解析表达式为</p>
+
+<div class="eq"><span class="math-display">\[Q_{DE} = \tau_F I_{CC}\]</span><span class="eqno">(3.51)</span></div>
+<div class="eq"><span class="math-display">\[Q_{DC} = \tau_R I_{EC}\]</span><span class="eqno">(3.52)</span></div>
+<div class="eq"><span class="math-display">\[Q_{JE} = \int_{0}^{V_{BE}}\! C_{JE}\,dV = \frac{C_{JEO}}{1 - m_E}\!\left(1 - \frac{V_{BE}}{\phi_E}\right)^{1 - m_E}\]</span><span class="eqno">(3.53)</span></div>
+<div class="eq"><span class="math-display">\[Q_{JC} = \int_{0}^{V_{BC}}\! C_{JC}\,dV = \frac{C_{JCO}}{1 - m_C}\!\left(1 - \frac{V_{BC}}{\phi_C}\right)^{1 - m_C}\]</span><span class="eqno">(3.54)</span></div>
+
+<p>其中 τ<sub>F</sub> 与 τ<sub>R</sub> 分别是正向与反向载流子渡越时间，<i>C</i><sub>JEO</sub> 与 <i>C</i><sub>JCO</sub> 分别是 BEJ 与 BCJ 的零偏置电容，<i>m</i><sub>E</sub> 与 <i>m</i><sub>C</sub> 分别是 BEJ 与 BCJ 的缓变系数，φ<sub>E</sub> 与 φ<sub>C</sub> 分别是 BEJ 与 BCJ 的内建电压。</p>
+
+<p>相应的结电容与扩散电容可表示为</p>
+
+<div class="eq"><span class="math-display">\[C_{DE} = \frac{d Q_{DE}}{d V_{BE}} = \frac{d\!\left(\tau_F I_{CC}\right)}{d V_{BE}}\]</span><span class="eqno">(3.55)</span></div>
+<div class="eq"><span class="math-display">\[C_{DC} = \frac{d Q_{DC}}{d V_{BC}} = \frac{d\!\left(\tau_R I_{EC}\right)}{d V_{BC}}\]</span><span class="eqno">(3.56)</span></div>
+<div class="eq"><span class="math-display">\[C_{JE}(V_{BE}) = \frac{d Q_{JE}}{d V_{BE}} = \frac{C_{JEO}}{\!\left(1 - \dfrac{V_{BE}}{\phi_E}\right)^{m_E}}\]</span><span class="eqno">(3.57)</span></div>
+<div class="eq"><span class="math-display">\[C_{JC}(V_{BC}) = \frac{d Q_{JC}}{d V_{BC}} = \frac{C_{JCO}}{\!\left(1 - \dfrac{V_{BC}}{\phi_C}\right)^{m_C}}\]</span><span class="eqno">(3.58)</span></div>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.37.png" alt="完整的 Ebers–Moll 大信号模型">
+  <div class="cap"><b>图 3.37</b> 完整的 Ebers–Moll 大信号模型</div>
+</div>
+
+<p>射频电路常工作于远小于电路中偏置电流与偏置电压的信号电平下。在这种情况下，可以推导出增量（小信号）模型，无需包含偏置量即可计算电路增益与端子阻抗。基于完整的 E–M 大信号模型，只需在正常工作模式下用泰勒级数展开并在一次项后截断，即可方便地对非线性关系做线性化，得到小信号模型。图 3.38 给出了 BJT 在正常偏置条件下的小信号等效电路模型。可以观察到：基极-发射极二极管用电阻 <i>R</i><sub>π</sub> 与电容 <i>C</i><sub>π</sub> 并联替代，基极-集电极二极管用电阻 <i>R</i><sub>μ</sub> 与电容 <i>C</i><sub>μ</sub> 并联替代，集电极电流用一个压控电流源替代。</p>
+
+<p>正向与反向跨导 <i>g</i><sub>mF</sub> 与 <i>g</i><sub>mR</sub> 为</p>
+
+<div class="eq"><span class="math-display">\[g_{mF} = \frac{d I_C}{d V_{BE}} = \frac{q}{k T}\,I_S\exp\frac{q V_{BE}}{k T} = \frac{q}{k T}\,I_C\]</span><span class="eqno">(3.59)</span></div>
+<div class="eq"><span class="math-display">\[g_{mR} = \frac{d I_C}{d V_{BC}} = \frac{q}{k T}\,I_S\exp\frac{q V_{BC}}{k T}\]</span><span class="eqno">(3.60)</span></div>
+
+<p>BEJ 与 BCJ 电阻 <i>r</i><sub>π</sub> 与 <i>r</i><sub>μ</sub> 可表示为</p>
+
+<div class="eq"><span class="math-display">\[g_\pi = \frac{1}{r_\pi} = \frac{d I_B}{d V_{BE}} = \frac{d\!\left(I_C/\beta_F\right)}{d V_{BE}} = \frac{g_{mF}}{\beta_F}\]</span><span class="eqno">(3.61)</span></div>
+<div class="eq"><span class="math-display">\[g_\mu = \frac{1}{r_\mu} = \frac{d I_B}{d V_{BC}} = \frac{d\!\left(I_C/\beta_R\right)}{d V_{BC}} = \frac{g_{mR}}{\beta_R}\]</span><span class="eqno">(3.62)</span></div>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.38.png" alt="BJT 在正常偏置条件下的小信号等效电路模型">
+  <div class="cap"><b>图 3.38</b> BJT 在正常偏置条件下的小信号等效电路模型</div>
+</div>
+
+<h3>3.4.2 G–P 模型</h3>
+
+<p>E–M 模型缺少对实际器件中若干重要二阶效应的描述，因此需要改进。相比 E–M 模型，G–P 模型考虑了三个最重要的物理效应 [3]：</p>
+
+<ol>
+  <li>低电流效应（β 在低电流下下降）；</li>
+  <li>基区宽度调制（Early 效应）；</li>
+  <li>大电流注入。</li>
+</ol>
+
+<p>图 3.39 给出了 G–P 大信号等效电路模型；用两个附加的二极管来表示低电流效应，并将一个新的因子 <i>q</i><sub>b</sub> 引入电流源 <i>I</i><sub>CT</sub> 中来表示基区宽度调制与大电流注入。</p>
+
+<p>电流可表示为：</p>
+
+<div class="eq"><span class="math-display">\[I_{bei} = I_S\!\left(\exp\frac{q V_{BE}}{\eta_F k T} - 1\right)\]</span><span class="eqno">(3.63)</span></div>
+<div class="eq"><span class="math-display">\[I_{ben} = I_{SE}\!\left(\exp\frac{q V_{BE}}{\eta_E k T} - 1\right)\]</span><span class="eqno">(3.64)</span></div>
+<div class="eq"><span class="math-display">\[I_{bci} = I_S\!\left(\exp\frac{q V_{BC}}{\eta_R k T} - 1\right)\]</span><span class="eqno">(3.65)</span></div>
+<div class="eq"><span class="math-display">\[I_{bcn} = I_{SC}\!\left(\exp\frac{q V_{BC}}{\eta_C k T} - 1\right)\]</span><span class="eqno">(3.66)</span></div>
+<div class="eq"><span class="math-display">\[I_{CT} = \frac{I_{bei} - I_{bci}}{q_b}\]</span><span class="eqno">(3.67)</span></div>
+
+<p>其中 <i>I</i><sub>SE</sub> 与 <i>I</i><sub>SC</sub> 分别是基极-发射极与基极-集极的漏电饱和电流；η<sub>F</sub> 与 η<sub>R</sub> 分别是正向与反向电流发射系数；η<sub>C</sub> 与 η<sub>E</sub> 分别是基极-集极与基极-发射极的非理想低电流发射系数。注意两个电流 <i>I</i><sub>bei</sub> 与 <i>I</i><sub>bci</sub> 用于模拟低电流效应。</p>
+
+<p>用于表示 Early 效应与大电流注入的因子 <i>q</i><sub>b</sub> 可写为</p>
+
+<div class="eq"><span class="math-display">\[q_b = \frac{q_1}{2} + \sqrt{\!\left(\frac{q_1}{2}\right)^{\!2} + q_2}\]</span><span class="eqno">(3.68)</span></div>
+
+<p>且</p>
+
+<div class="eq"><span class="math-display">\[q_1 = 1 + \frac{V_{BC}}{V_{AF}} + \frac{V_{BE}}{V_{AR}}\]</span></div>
+<div class="eq"><span class="math-display">\[q_2 = \frac{I_{bei}}{I_{kf}} + \frac{I_{bci}}{I_{kr}}\]</span></div>
+
+<p>其中 <i>I</i><sub>kf</sub> 与 <i>I</i><sub>kr</sub> 分别为正向与反向 β 大电流滚降的拐点电流；<i>V</i><sub>AF</sub> 与 <i>V</i><sub>AR</sub> 分别为正向与反向 Early 电压。</p>
+
+<p>端子电流可表示为：</p>
+
+<div class="eq"><span class="math-display">\[I_b = \frac{I_{bei}}{\beta_F} + \frac{I_{bci}}{\beta_R} + I_{bcn} + I_{ben}\]</span><span class="eqno">(3.69)</span></div>
+<div class="eq"><span class="math-display">\[I_c = I_{CT} - \frac{I_{bci}}{\beta_R} - I_{bcn}\]</span><span class="eqno">(3.70)</span></div>
+<div class="eq"><span class="math-display">\[I_e = -I_{CT} - \frac{I_{bci}}{\beta_F} - I_{ben}\]</span><span class="eqno">(3.71)</span></div>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.39.png" alt="BJT Gummel–Poon 大信号模型">
+  <div class="cap"><b>图 3.39</b> BJT Gummel–Poon 大信号模型</div>
+</div>
+
+<p>图 3.40 给出了在 <i>V</i><sub>BC</sub> = 0 时 ln(<i>I</i><sub>C</sub>) 与 ln(<i>I</i><sub>B</sub>) 随 q<i>V</i><sub>BE</sub>/kT 的关系图，由此可直接确定某些模型参数（如 <i>I</i><sub>kf</sub>、<i>I</i><sub>kr</sub>、η<sub>F</sub> 与 η<sub>E</sub>）。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.40.png" alt="VBC=0 时 ln(IC) 和 ln(IB) 与 qVBE/kT 的关系">
+  <div class="cap"><b>图 3.40</b> <i>V</i><sub>BC</sub> = 0 时 ln(<i>I</i><sub>C</sub>) 与 ln(<i>I</i><sub>B</sub>) 随 q<i>V</i><sub>BE</sub>/kT 的关系</div>
+</div>
+
+<p>端子电流可表示为：</p>
+
+<div class="eq"><span class="math-display">\[I_c = I_S\!\left(\exp\frac{q V_{be}}{n_f k T} - 1\right)\]</span><span class="eqno">(3.72)</span></div>
+
+<p>在器件的正向与反向放大工作下测得的数据以及测得的 <i>I</i><sub>c</sub>–<i>V</i><sub>ce</sub> 特性用于参数提取。在正向放大工作时，将 <i>V</i><sub>bc</sub> 设为零并改变 <i>V</i><sub>be</sub>；在相应 <i>V</i><sub>be</sub> 电压下测得 <i>I</i><sub>b</sub> 与 <i>I</i><sub>c</sub>。对于反向放大工作，将 <i>V</i><sub>be</sub> 设为零并在变化的 <i>V</i><sub>bc</sub> 电压下测得 <i>I</i><sub>b</sub> 与 <i>I</i><sub>e</sub>。图 3.41 给出了用于确定 BJT 模型参数的正向与反向测量方法。</p>
+
+<div class="eq"><span class="math-display">\[I_b = \frac{I_c}{\beta_f} + I_{SE}\!\left(\exp\frac{q V_{be}}{n_e k T} - 1\right)\]</span><span class="eqno">(3.73)</span></div>
+
+<p>模型参数 <i>I</i><sub>SE</sub>、<i>I</i><sub>S</sub>、β<sub>f</sub>、<i>n</i><sub>e</sub> 与 <i>n</i><sub>f</sub> 可由上述基极与集电极电流方程确定。</p>
+
+<p>类似地，对于反向放大工作，有</p>
+
+<div class="eq"><span class="math-display">\[I_b = \frac{I_e}{\beta_r} + I_{SC}\!\left(\exp\frac{q V_{bc}}{n_c k T} - 1\right)\]</span><span class="eqno">(3.74)</span></div>
+<div class="eq"><span class="math-display">\[I_e = I_S\!\left(\exp\frac{q V_{bc}}{n_r k T} - 1\right)\]</span><span class="eqno">(3.75)</span></div>
+
+<p>模型参数 <i>I</i><sub>SC</sub>、<i>I</i><sub>S</sub>、β<sub>r</sub>、<i>n</i><sub>c</sub> 与 <i>n</i><sub>r</sub> 可由 <i>I</i><sub>b</sub> 与 <i>I</i><sub>c</sub> 曲线用优化方法确定。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.41.png" alt="用于确定 BJT 模型参数的正向与反向测量">
+  <div class="cap"><b>图 3.41</b> 用于确定 BJT 模型参数的正向与反向测量：（a）正向测量；（b）反向测量</div>
+</div>
+
+<h3>3.4.3 噪声模型</h3>
+
+<p>完整的 BJT 噪声等效电路模型如图 3.42 所示。电路模型包含众所周知的 π 型小信号等效电路以及五个噪声源 <i>e</i><sup>2</sup><sub>b</sub>、<i>e</i><sup>2</sup><sub>c</sub>、<i>e</i><sup>2</sup><sub>e</sub>、<i>i</i><sup>2</sup><sub>b</sub> 与 <i>i</i><sup>2</sup><sub>c</sub>。两个电流噪声源 <i>i</i><sup>2</sup><sub>b</sub> 与 <i>i</i><sup>2</sup><sub>c</sub> 代表本征 BJT 的内部噪声源。这两个噪声源以其在以频率 <i>f</i> 为中心、带宽 Δ<i>f</i> 内的均方值表征，可由下式给出：</p>
+
+<div class="eq"><span class="math-display">\[i_b^{2} = 2q I_b \Delta f\]</span><span class="eqno">(3.76)</span></div>
+<div class="eq"><span class="math-display">\[i_c^{2} = 2q I_c \Delta f\]</span><span class="eqno">(3.77)</span></div>
+
+<p>其中 <i>I</i><sub>b</sub> 与 <i>I</i><sub>c</sub> 分别是基极与集电极的直流电流。三个噪声源 <i>e</i><sup>2</sup><sub>b</sub>、<i>e</i><sup>2</sup><sub>c</sub> 与 <i>e</i><sup>2</sup><sub>e</sub> 表示外接电阻 <i>R</i><sub>B</sub>、<i>R</i><sub>C</sub> 与 <i>R</i><sub>E</sub> 的噪声特性，可简单地表示为</p>
+
+<div class="eq"><span class="math-display">\[e_i^{2} = 4 k T R_i \Delta f \qquad i = B, C, E\]</span><span class="eqno">(3.78)</span></div>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.42.png" alt="BJT 噪声等效电路模型">
+  <div class="cap"><b>图 3.42</b> BJT 噪声等效电路模型</div>
+</div>
+
+<h2 id="s3-1">3.5 微波性能</h2>
+
+<p>BJT 作为放大器使用时有三种基本组态。每种组态都是把 BJT 三个端子中的一个接地而得到的，从而构成一个二端口网络，接地端为输入端口与输出端口所共用。图 3.43 给出了 BJT 放大器的三种基本组态；下面我们将基于小信号等效电路模型的信号参数，讨论这些不同组态的微波性能。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.43.png" alt="BJT 放大器的三种基本组态">
+  <div class="cap"><b>图 3.43</b> BJT 放大器的三种基本组态：(a) 共发射极，(b) 共基极，(c) 共集电极</div>
+</div>
+
+<h3>3.5.1 特征频率</h3>
+
+<p>图 3.44 给出了正常偏置条件下 BJT 的本征小信号等效电路模型，其中 <i>g</i><sub>m</sub> 为正向跨导。需要注意的是，本模型忽略了本征基极—集电极电阻 <i>R</i><sub>μ</sub>，这是因为 <i>R</i><sub>μ</sub> 的阻值很大，只要我们只关心正向工作，它对频率响应的影响并不显著。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.44.png" alt="BJT 的本征小信号等效电路模型">
+  <div class="cap"><b>图 3.44</b> BJT 的本征小信号等效电路模型</div>
+</div>
+
+<p>本征小信号等效电路模型的 <i>Y</i> 参数可表示为</p>
+
+<div class="eq"><span class="math-display">\[Y_{11} = \frac{1}{r_\pi} + j\omega\,(C_\pi + C_\mu)\]</span><span class="eqno">(3.79)</span></div>
+<div class="eq"><span class="math-display">\[Y_{12} = -j\omega C_\mu\]</span><span class="eqno">(3.80)</span></div>
+<div class="eq"><span class="math-display">\[Y_{21} = g_m - j\omega C_\mu\]</span><span class="eqno">(3.81)</span></div>
+<div class="eq"><span class="math-display">\[Y_{22} = g_o + j\omega C_\mu\]</span><span class="eqno">(3.82)</span></div>
+
+<p>根据 <i>Y</i> 参数与 <i>H</i> 参数之间的关系，可得</p>
+
+<div class="eq"><span class="math-display">\[H_{11} = \frac{1}{Y_{11}} = \frac{r_\pi}{1 + j\omega r_\pi (C_\pi + C_\mu)}\]</span><span class="eqno">(3.83)</span></div>
+<div class="eq"><span class="math-display">\[H_{12} = -\frac{Y_{12}}{Y_{11}} = \frac{j\omega r_\pi C_\mu}{1 + j\omega r_\pi (C_\pi + C_\mu)}\]</span><span class="eqno">(3.84)</span></div>
+<div class="eq"><span class="math-display">\[H_{21} = \frac{Y_{21}}{Y_{11}} = \frac{g_m r_\pi - j\omega r_\pi C_\mu}{1 + j\omega r_\pi (C_\pi + C_\mu)}\]</span><span class="eqno">(3.85)</span></div>
+<div class="eq"><span class="math-display">\[H_{22} = \frac{\Delta Y}{Y_{11}} = \frac{g_o - \omega^{2} r_\pi C_\pi C_\mu + j\omega C_\mu (1 + g_m r_\pi + j\omega g_o r_\pi (C_\pi + C_\mu))}{1 + j\omega r_\pi (C_\pi + C_\mu)} = \frac{g_o + j\omega C_\mu (1 + g_m r_\pi + j\omega r_\pi C_\pi)}{1 + j\omega r_\pi (C_\pi + C_\mu)}\]</span><span class="eqno">(3.86)</span></div>
+
+<p>衡量 BJT 作为放大器高频工作能力的品质因数是单位增益频率，也称为特征频率 <i>f</i><sub>T</sub>（下标 T 即由此而来）。特征频率定义为共发射极组态的短路电流增益降为 1 时所对应的频率。众所周知，<i>H</i><sub>21</sub> 的定义正是正向短路电流增益；因此，特征频率 <i>f</i><sub>T</sub> 可以很方便地由 <i>H</i><sub>21</sub> 随频率变化的曲线确定。</p>
+
+<p>假设 <i>β</i><sub>F</sub> &gt;&gt; 1，则 <i>H</i><sub>21</sub> 可改写为</p>
+
+<div class="eq"><span class="math-display">\[H_{21} = \beta_F\,\frac{1 - j f/f_o}{1 + j f/f_\beta} \approx \frac{\beta_F}{1 + j f/f_\beta}\]</span><span class="eqno">(3.87)</span></div>
+
+<p>其中最高频率 <i>f</i><sub>o</sub> 与 <i>β</i> 截止频率 <i>f</i><sub>β</sub> 分别为</p>
+
+<div class="eq"><span class="math-display">\[f_o = \frac{g_m}{2\pi C_\mu}, \qquad f_\beta = \frac{1}{2\pi r_\pi (C_\pi + C_\mu)}\]</span></div>
+
+<p><i>β</i> 截止频率 <i>f</i><sub>β</sub> 定义为 |<i>H</i><sub>21</sub>| 等于 <i>β</i><sub>F</sub>/√2（相对低频值下降 3 dB）时的频率。图 3.45 给出了正向短路电流增益 |<i>H</i><sub>21</sub>| 随频率的变化；当其下降到 1（|<i>H</i><sub>21</sub>| = 1）时，<i>f</i><sub>T</sub> 可由下式求得</p>
+
+<div class="eq"><span class="math-display">\[f_T \approx \frac{\beta_F}{2\pi r_\pi (C_\pi + C_\mu)} = \frac{g_m}{2\pi (C_\pi + C_\mu)}\]</span><span class="eqno">(3.88)</span></div>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.45.png" alt="正向短路电流增益 H21 随频率的变化">
+  <div class="cap"><b>图 3.45</b> 正向短路电流增益 <i>H</i><sub>21</sub> 随频率的变化</div>
+</div>
+
+<p>图 3.46 给出了 <i>f</i><sub>T</sub> 随 <i>I</i><sub>C</sub> 的变化：在峰值点之前，<i>f</i><sub>T</sub> 随 <i>I</i><sub>C</sub> 增大而升高；在峰值点之后，由于大电流注入效应的影响，<i>f</i><sub>T</sub> 随 <i>I</i><sub>C</sub> 继续增大而下降。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.46.png" alt="fT 随 IC 的变化">
+  <div class="cap"><b>图 3.46</b> <i>f</i><sub>T</sub> 随 <i>I</i><sub>C</sub> 的变化</div>
+</div>
+
+<h3>3.5.2 共发射极组态</h3>
+
+<p>图 3.47 给出了共发射极组态的等效电路模型；输入反射系数 <i>Γ</i><sub>in</sub> 与输出反射系数 <i>Γ</i><sub>out</sub> 可表示为</p>
+
+<div class="eq"><span class="math-display">\[\Gamma_{in} = \frac{Z_{in} - Z_o}{Z_{in} + Z_o} = S_{11} + \frac{S_{12}S_{21}}{1 - S_{22}\Gamma_L}\,\Gamma_L\]</span><span class="eqno">(3.89)</span></div>
+<div class="eq"><span class="math-display">\[\Gamma_{out} = \frac{Z_{out} - Z_o}{Z_{out} + Z_o} = S_{22} + \frac{S_{12}S_{21}}{1 - S_{11}\Gamma_S}\,\Gamma_S\]</span><span class="eqno">(3.90)</span></div>
+
+<p>其中 <i>Z</i><sub>o</sub> 为特性阻抗（通常 <i>Z</i><sub>o</sub> = 50 Ω），<i>Z</i><sub>S</sub> 与 <i>Z</i><sub>L</sub> 分别为源阻抗与负载阻抗（<i>Γ</i><sub>S</sub> 与 <i>Γ</i><sub>L</sub> 为相应的反射系数），<i>Z</i><sub>in</sub> 与 <i>Z</i><sub>out</sub> 分别为输入阻抗与输出阻抗。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.47.png" alt="共发射极组态的等效电路模型">
+  <div class="cap"><b>图 3.47</b> 共发射极组态的等效电路模型</div>
+</div>
+
+<p>当源端与负载端均端接匹配阻抗（即 <i>Z</i><sub>S</sub> = <i>Z</i><sub>L</sub> = <i>Z</i><sub>o</sub>）时，<i>Z</i><sub>in</sub> 与 <i>Z</i><sub>out</sub> 为</p>
+
+<div class="eq"><span class="math-display">\[Z_{in} = Z_o\,\frac{1 + S_{11}}{1 - S_{11}}\]</span><span class="eqno">(3.91)</span></div>
+<div class="eq"><span class="math-display">\[Z_{out} = Z_o\,\frac{1 + S_{22}}{1 - S_{22}}\]</span><span class="eqno">(3.92)</span></div>
+
+<p>其中</p>
+
+<div class="eq"><span class="math-display">\[S_{11} = \frac{(Y_o - Y_{11})(Y_o + Y_{22}) + Y_{12}Y_{21}}{(Y_o + Y_{11})(Y_o + Y_{22}) - Y_{12}Y_{21}}\]</span><span class="eqno">(3.93)</span></div>
+<div class="eq"><span class="math-display">\[S_{22} = \frac{(Y_o + Y_{11})(Y_o - Y_{22}) + Y_{12}Y_{21}}{(Y_o + Y_{11})(Y_o + Y_{22}) - Y_{12}Y_{21}}\]</span><span class="eqno">(3.94)</span></div>
+
+<p><i>Y</i> 参数由式 (3.79)–(3.82) 给出。将式 (3.93) 与 (3.94) 代入式 (3.91) 与 (3.92)，可得</p>
+
+<div class="eq"><span class="math-display">\[Z_{in} = \frac{Y_o + Y_{22}}{Y_{11} Y_o + \Delta Y}\]</span><span class="eqno">(3.95)</span></div>
+<div class="eq"><span class="math-display">\[Z_{out} = \frac{Y_o + Y_{11}}{Y_{22} Y_o + \Delta Y}\]</span><span class="eqno">(3.96)</span></div>
+
+<p>其中</p>
+
+<div class="eq"><span class="math-display">\[Y_{11} = \frac{1}{r_\pi} + j\omega(C_\pi + C_\mu),\quad Y_{22} = g_o + j\omega C_\mu,\quad \Delta Y = Y_{11}Y_{22} + j\omega C_\mu(g_m - j\omega C_\mu)\]</span></div>
+
+<p>在低频段，有</p>
+
+<div class="eq"><span class="math-display">\[Y_o \gg Y_{11},\ Y_o \gg Y_{22},\ Y_o Y_{11} \gg \Delta Y,\ Y_o Y_{22} \gg \Delta Y\]</span></div>
+
+<p>于是输入阻抗 <i>Z</i><sub>in</sub> 与输出阻抗 <i>Z</i><sub>out</sub> 可简化为</p>
+
+<div class="eq"><span class="math-display">\[Z_{in} \approx r_\pi\]</span><span class="eqno">(3.97)</span></div>
+<div class="eq"><span class="math-display">\[Z_{out} \approx \frac{1}{g_o}\]</span><span class="eqno">(3.98)</span></div>
+
+<p>由此可见，共发射极组态具有中等大小的 <i>Z</i><sub>in</sub> 与较高的 <i>Z</i><sub>out</sub>，其电流增益与电压增益都很高。</p>
+
+<h3>3.5.3 共基极组态</h3>
+
+<p>图 3.48 给出了共基极组态的等效电路模型；BJT 的 <i>Y</i> 参数可表示为</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.48.png" alt="共基极组态的等效电路模型">
+  <div class="cap"><b>图 3.48</b> 共基极组态的等效电路模型</div>
+</div>
+
+<div class="eq"><span class="math-display">\[Y_{11} = g_m + \frac{1}{r_\pi} + g_o + j\omega C_\pi\]</span><span class="eqno">(3.99)</span></div>
+<div class="eq"><span class="math-display">\[Y_{12} = -g_o\]</span><span class="eqno">(3.100)</span></div>
+<div class="eq"><span class="math-display">\[Y_{21} = -g_m + g_o\]</span><span class="eqno">(3.101)</span></div>
+<div class="eq"><span class="math-display">\[Y_{22} = g_o + j\omega C_\mu\]</span><span class="eqno">(3.102)</span></div>
+
+<p>在低频段，输入阻抗 <i>Z</i><sub>in</sub> 与输出阻抗 <i>Z</i><sub>out</sub> 可近似表示为</p>
+
+<div class="eq"><span class="math-display">\[Z_{in}\big|_{\omega \to 0} \approx \frac{Y_o + g_o}{g_m Y_o + g_o/r_\pi} \approx \frac{1}{g_m}\]</span><span class="eqno">(3.103)</span></div>
+<div class="eq"><span class="math-display">\[Z_{out}\big|_{\omega \to 0} \approx \frac{Y_o + g_m}{g_o Y_o + g_o/r_\pi} \approx \frac{1}{g_o}\]</span><span class="eqno">(3.104)</span></div>
+
+<p>总之，共基极组态呈现出较低的输入阻抗 1/<i>g</i><sub>m</sub> 与较高的输出阻抗 1/<i>g</i><sub>o</sub>。其电压增益为正，且幅值与共发射极组态相同。共基极组态具有优良的高频性能，因而在与其他电路（如共发射极组态）组合实现高频放大器时十分有用。</p>
+
+<h3>3.5.4 共集电极组态</h3>
+
+<p>BJT 基本组态中的最后一种是共集电极放大器，它在数字逻辑电路中非常重要。如图 3.49 所示，由于输出取自晶体管的发射极端，该网络又被称为射极跟随器。由于基极到发射极之间存在压降，输出电压总是略小于输入信号。因此，输出电压在幅值上跟随输入电压，且两者同相，这正是"射极跟随器"这一名称的由来。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Figure_3.49.png" alt="共集电极组态的等效电路模型">
+  <div class="cap"><b>图 3.49</b> 共集电极组态的等效电路模型</div>
+</div>
+
+<p>共集电极 BJT 的 <i>Y</i> 参数可表示为</p>
+
+<div class="eq"><span class="math-display">\[Y_{11} = \frac{1}{r_\pi} + j\omega(C_\pi + C_\mu)\]</span><span class="eqno">(3.105)</span></div>
+<div class="eq"><span class="math-display">\[Y_{12} = \frac{1}{r_\pi} + j\omega C_\pi\]</span><span class="eqno">(3.106)</span></div>
+<div class="eq"><span class="math-display">\[Y_{21} = g_m + \frac{1}{r_\pi} + j\omega C_\pi\]</span><span class="eqno">(3.107)</span></div>
+<div class="eq"><span class="math-display">\[Y_{22} = g_m + \frac{1}{r_\pi} + g_o + j\omega C_\pi\]</span><span class="eqno">(3.108)</span></div>
+
+<p>在低频段，输入阻抗 <i>Z</i><sub>in</sub> 与输出阻抗 <i>Z</i><sub>out</sub> 可近似表示为</p>
+
+<div class="eq"><span class="math-display">\[Z_{in}\big|_{\omega \to 0} \approx \frac{Y_o + g_m}{Y_o r_\pi + g_o r_\pi} \approx r_\pi\]</span><span class="eqno">(3.109)</span></div>
+<div class="eq"><span class="math-display">\[Z_{out}\big|_{\omega \to 0} \approx \frac{Y_o + 1/r_\pi}{g_m Y_o + g_o/r_\pi} \approx \frac{1}{g_m}\]</span><span class="eqno">(3.110)</span></div>
+
+<p>总之，共集电极组态呈现出中等大小的输入阻抗 <i>r</i><sub>π</sub> 与相对较低的输出阻抗 1/<i>g</i><sub>m</sub>。其电压增益为正，且近似等于 1。射极跟随器组态常用于放大单元之间的电平移动。此外，它还可用于改善放大级之间的失配（阻抗变换），并可在高频段用于增益峰化。</p>
+
+<h3>3.5.5 小结与比较</h3>
+
+<p>表 3.2 总结了三种基本组态的比较 [6]。共发射极级是最常被采用的组态，因为它兼具相当高的输入阻抗、较高的输出阻抗以及很高的电流增益与电压增益，常用于单端低噪声放大器（LNA）与功率放大器（PA）。共基极组态具有可精确预测的低输入阻抗、高输出阻抗与高电压增益，但其电流增益接近 1；它是优良的电流缓冲器，常用于隔离电路节点。共集电极级通常称为射极跟随器，主要用作电平移动级和电压缓冲器，以隔离各级并提供额外的驱动能力；它具有高输入阻抗、低输出阻抗以及接近 1 的电压增益。</p>
+
+<div class="figure">
+  <img src="ch3_figs/Table_3.2.png" alt="三种基本组态的比较">
+  <div class="cap"><b>表 3.2</b> 三种基本组态的比较</div>
+</div>
+
+<h2 id="s3-2">3.6 小结</h2>
+
+<p>本章介绍了 pn 结二极管与 BJT 的基本工作机制，讨论了二极管与 BJT 常用的大信号与小信号等效电路模型，最后介绍了三种基本组态的微波性能。</p>
+
+<h2 id="s3-3">参考文献</h2>
+
+<ol class="refs">
+<li>Ludwig, R. and Bretchko, P. (2002) <i>RF Circuit Design: Theory and Applications</i>, Person Education, Inc, Upper Saddle River.</li>
+<li>Neamen, D.A. (2003) <i>Semiconductor Physics and Devices: Basic Principles</i>, McGraw-Hill Company, Inc, Boston.</li>
+<li>Massobrio, G. and Antognetii, P. (1993) <i>Semiconductor Device Modeling with SPICE</i>, McGraw-Hill Company, Inc, New York.</li>
+<li>Bennett, R.J. (1987) Interpretation of forward bias behavior of Schottky barriers. <i>IEEE Transactions on Electron Devices</i>, 34(4), 935–937.</li>
+<li>Kroemer, H. (1982) Heterostructure bipolar transistor and integrated circuit. <i>Proceedings of the IEEE</i>, 70(1), 13–25.</li>
+<li>Golio, M. (ed) (2001) <i>The RF and Microwave Handbook</i>, CRC Press LLC, Boca Raton.</li>
+</ol>
+
+</body>
+</html>

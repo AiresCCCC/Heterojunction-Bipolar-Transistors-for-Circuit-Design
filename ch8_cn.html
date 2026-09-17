@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: true
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+  },
+  chtml: {
+    scale: 1
+  },
+  startup: {
+    pageReady: () => MathJax.startup.defaultPageReady().then(() => {
+      const updateFormulaOverflow = () => {
+        document.querySelectorAll('.math-display').forEach((formula) => {
+          const math = formula.querySelector('mjx-math') || formula.querySelector('mjx-container');
+          const mathWidth = math ? math.getBoundingClientRect().width : 0;
+          formula.classList.toggle('math-overflow', mathWidth > formula.clientWidth + 4);
+        });
+      };
+      updateFormulaOverflow();
+      if (window.ResizeObserver) {
+        const observer = new ResizeObserver(updateFormulaOverflow);
+        document.querySelectorAll('.math-display').forEach((formula) => observer.observe(formula));
+      }
+    })
+  }
+};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第8章 SiGe HBT建模与参数提取</title>
+<style>
+/* ===== HBT 中文译本 · 统一标准样式 ===== */
+  :root {
+    --ink: #1a1a1a; --muted: #5a6470; --accent: #2a4d8f; --rule: #d8dce2;
+    --bg: #ffffff; --soft: #f7f8fa;
+    --serif: "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", "STSong", "SimSun", Georgia, "Times New Roman", serif;
+    --sans: "Source Han Sans SC", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", "Heiti SC", Helvetica, Arial, sans-serif;
+    --mono: "Cambria Math", "STIX Two Math", "Latin Modern Math", "Times New Roman", serif;
+  }
+  html, body { background: var(--bg); color: var(--ink); }
+  body { font-family: var(--serif); max-width: 880px; margin: 0 auto;
+         padding: 46px 26px 64px; line-height: 1.78; }
+  header { border-bottom: 1px solid var(--rule); padding-bottom: 18px; margin-bottom: 30px; }
+  .kicker { font-family: var(--sans); font-size: 0.78em; letter-spacing: 0.14em;
+            text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: var(--serif); font-size: 1.7em; line-height: 1.4;
+       margin: 12px 0 6px; font-weight: 600; }
+  .ch-num { font-family: var(--sans); color: var(--accent); font-size: 0.85em;
+            letter-spacing: 0.08em; }
+  .credit { font-family: var(--sans); font-size: 0.78em; color: var(--muted);
+            margin-top: 18px; line-height: 1.55; }
+  h2 { font-family: var(--serif); font-size: 1.32em; margin: 36px 0 14px;
+       border-bottom: 1px solid var(--rule); padding-bottom: 6px; font-weight: 600; }
+  h3 { font-family: var(--serif); font-size: 1.12em; margin: 26px 0 10px; font-weight: 600; }
+  h4 { font-family: var(--serif); font-size: 1.0em; margin: 22px 0 8px;
+       font-weight: 600; color: #222; }
+  p { margin: 0 0 12px; text-align: justify; }
+  ul { margin: 6px 0 14px; padding-left: 22px; }
+  ol { margin: 6px 0 14px; padding-left: 24px; }
+  li { margin: 2px 0; }
+  .figure { margin: 22px auto; text-align: center; }
+  .figure img { max-width: 100%; height: auto; border: 1px solid var(--rule);
+                border-radius: 2px; background: #fff; }
+  .figure .cap { font-family: var(--sans); font-size: 0.86em; color: var(--muted);
+                 margin-top: 8px; line-height: 1.5; }
+  .eq { position: relative; display: flex; align-items: center;
+        justify-content: center; margin: 10px 0; }
+  /* 公式编号：绝对定位贴正文右边界，垂直居中 */
+  .eq .eqno { position: absolute; right: 0; top: 50%;
+              transform: translateY(-50%); z-index: 2;
+              padding-left: .5em; background: var(--bg);
+              font-family: var(--sans);
+              font-size: 0.88em; color: var(--muted); white-space: nowrap; }
+  /* 公式本体留出编号通道，避免宽公式与右对齐编号重叠 */
+  .eq .math-display { display: block; flex: 0 1 auto; width: max-content; min-width: 0;
+                       max-width: calc(100% - 7.5em); overflow-x: hidden; overflow-y: hidden;
+                       padding: 2px 0; box-sizing: border-box; }
+  .eq .eqtag { font-family: var(--sans); font-size: 0.88em;
+               color: var(--muted); margin-left: 10px; white-space: nowrap; }
+  .eqdef { display: flex; align-items: center; gap: 18px; margin: 6px 0 12px; }
+  .eqdef .math-display { flex: 0 1 auto; width: max-content; max-width: 46%;
+                         overflow-x: hidden; overflow-y: hidden; padding: 2px 0;
+                         box-sizing: border-box; }
+  .math-display.math-overflow { overflow-x: auto; }
+  .eqdef .meaning { flex: 1; font-size: 0.95em; line-height: 1.4; color: #222; }
+  .src { font-family: var(--sans); font-size: 0.76em; color: var(--muted);
+         margin-top: 4px; }
+  ol.refs { font-family: var(--sans); font-size: 0.85em; line-height: 1.6;
+            color: #333; padding-left: 26px; }
+  ol.refs li { margin: 4px 0; }
+  @media (max-width: 700px) {
+    body { padding: 24px 16px 40px; }
+    .eq .eqno { position: static; transform: none; margin-left: 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+<header class="chapter-head">
+  <div class="chapter-no">第 8 章</div>
+  <h1>SiGe HBT建模与参数提取</h1>
+  <p class="chapter-intro">许多III–V族化合物半导体（如GaAs或InP）具有更高的载流子迁移率和饱和速度。然而，仍有一些重大问题需要在未来加以应对：基于III–V族化合物半导体的晶圆尺寸更小、缺陷密度更高、更易碎裂、导热性更差等。这意味着集成度更低、制造更困难、良率更低，最终成本更高。硅则具有优异的热特性，能够有效耗散所产生的热量，并具有良好的机械强度，便于加工与制造。</p>
+  <p class="chapter-intro">在常规硅双极晶体管中，采用应变且组分渐变的硅锗（SiGe）作为基区层，由于渐变带隙在基区内建立起准电场，载流子穿越基区的渡越时间显著缩短。此外，基区带隙的减小大幅提高了发射极注入效率，从而允许更高的基区掺杂浓度，并在不发生穿通的前提下实现更窄的基区宽度，进一步降低基区渡越时间。因此，SiGe HBT 实现了与GaAs技术相当的射频性能，而其制造成本与可靠性却与硅工艺相近。</p>
+</header>
+
+<section>
+<h2 id="s8-1">8.1 引言</h2>
+<p>SiGe异质结双极晶体管是最早投入实用的带隙工程化硅器件。凭借其高速性能与成熟的硅工艺，SiGe HBT已成为高速电路的首选技术<sup>[1, 2]</sup>；与CMOS工艺的集成更使其性能获益良多。</p>
+<p>SiGe技术与现有硅CMOS工艺的兼容性，为未来的高频混合信号电路提供了强有力的组合。</p>
+<div class="figure"><img src="ch8_figs/Figure_8.1.png" alt="图8.1 渐变基区SiGe HBT与Si BJT的能带图对比"><div class="cap"><b>图 8.1</b>　渐变基区SiGe HBT与Si BJT的能带图对比</div></div>
+<p>图8.1给出了渐变基区SiGe HBT与Si BJT的能带图对比<sup>[3]</sup>。如图8.1中虚线所示，锗（Ge）的组分从发射结一侧的低浓度渐变到集电结一侧的高浓度。Ge的引入降低了载流子由发射区注入基区的势垒，并在基区内建立起加速电场。Ge的渐变加快了电子穿越器件的输运，从而实现更高的工作频率。此外，Ge渐变还通过调制基区内的本征载流子浓度，改善了器件的厄利电压（输出电流随输出电压变化的平坦度）。</p>
+</section>
+
+<section>
+<h2 id="s8-2">8.2 小信号模型</h2>
+<p>图8.2给出了正向有源区工作状态下SiGe HBT的小信号等效电路。该模型以著名的混合π型等效电路为基础，并附加一个三元件衬底网络。衬底损耗引起的焊盘寄生，由电容 <i>C</i><sub>pb</sub>、<i>C</i><sub>pc</sub> 分别与电阻 <i>R</i><sub>pb</sub>、<i>R</i><sub>pc</sub> 串联来建模<sup>[4–7]</sup>。为了计及SiGe HBT集电极—体区下方有耗硅阱/衬底区域的影响，需要在集电极与有耗衬底之间引入耦合网络，该网络由集电极—衬底电容 <i>C</i><sub>sub</sub> 与并联RC支路（<i>R</i><sub>bk</sub> 与 <i>C</i><sub>bk</sub>）串联构成。在直流衬底偏置下，从小信号的观点看发射极与衬底均接地，因此该耦合网络连接在集电极与发射极之间。</p>
+<div class="figure"><img src="ch8_figs/Figure_8.2.png" alt="图8.2 SiGe HBT小信号模型：(a) 焊盘与馈线模型，(b) T型模型，(c) π型模型"><div class="cap"><b>图 8.2</b>　SiGe HBT小信号模型：(a) 焊盘与馈线模型，(b) T型模型，(c) π型模型</div></div>
+<p>衬底损耗引起的焊盘寄生，可通过测量仅包含焊盘的开路结构来确定。开路测试结构的测量结果可建模为并联RC构成的π型网络。图8.3给出了开路测试结构的等效电路模型。焊盘寄生参数可由下列各式确定：</p>
+<div class="eq"><span class="math-display">\[C_{pb} = -\frac{1}{\omega\,\mathrm{Im}\left(\frac{1}{Y_{11}^{o} + Y_{12}^{o}}\right)}\]</span><span class="eqno">(8.1)</span></div>
+<div class="eq"><span class="math-display">\[C_{pc} = -\frac{1}{\omega\,\mathrm{Im}\left(\frac{1}{Y_{22}^{o} + Y_{12}^{o}}\right)}\]</span><span class="eqno">(8.2)</span></div>
+<div class="eq"><span class="math-display">\[C_{pbc} = -\frac{\mathrm{Im}\left(Y_{12}^{o}\right)}{\omega}\]</span><span class="eqno">(8.3)</span></div>
+<div class="eq"><span class="math-display">\[R_{pb} = \mathrm{Re}\left(\frac{1}{Y_{11}^{o} + Y_{12}^{o}}\right)\]</span><span class="eqno">(8.4)</span></div>
+<div class="eq"><span class="math-display">\[R_{pc} = \mathrm{Re}\left(\frac{1}{Y_{22}^{o} + Y_{12}^{o}}\right)\]</span><span class="eqno">(8.5)</span></div>
+<div class="figure"><img src="ch8_figs/Figure_8.3.png" alt="图8.3 开路测试结构的等效电路模型"><div class="cap"><b>图 8.3</b>　开路测试结构的等效电路模型</div></div>
+<p>其中上标 o 表示开路测试结构，<i>ω</i> 为角频率。图8.4与图8.5分别给出了提取得到的焊盘电容与衬底损耗电阻。可以看到，在很宽的频率范围内这些参数基本保持恒定；同时可以发现，其焊盘电容比III–V族HBT更大。</p>
+<div class="figure"><img src="ch8_figs/Figure_8.4.png" alt="图8.4 提取的焊盘电容随频率的变化"><div class="cap"><b>图 8.4</b>　提取的焊盘电容随频率的变化</div></div>
+<div class="figure"><img src="ch8_figs/Figure_8.5.png" alt="图8.5 提取的衬底损耗随频率的变化"><div class="cap"><b>图 8.5</b>　提取的衬底损耗随频率的变化</div></div>
+
+<p>集电极—衬底电容 <i>C</i><sub>sub</sub> 可由截止偏置条件下的S参数测量确定。HBT的截止偏置条件定义为两个结均为零偏（或反偏）的工作状态。在此条件下直流电流为零，因而电流增益极小，器件表现得如同一个无源元件。因此等效电路可大幅简化，如图8.6所示。在低频下，<i>C</i><sub>sub</sub> 可按下式确定。图8.7给出了提取的集电极—衬底电容 <i>C</i><sub>sub</sub> 随频率的变化：</p>
+<div class="figure"><img src="ch8_figs/Figure_8.6.png" alt="图8.6 截止偏置条件下SiGe HBT的小信号等效电路模型：(a) 低频，(b) 高频"><div class="cap"><b>图 8.6</b>　截止偏置条件下SiGe HBT的小信号等效电路模型：(a) 低频，(b) 高频</div></div>
+<div class="eq"><span class="math-display">\[C_{sub} = \frac{1}{\omega}\,\mathrm{Im}\left(Y_{22} + Y_{12}\right)\]</span><span class="eqno">(8.6)</span></div>
+<div class="figure"><img src="ch8_figs/Figure_8.7.png" alt="图8.7 提取的集电极—衬底电容Csub随频率的变化"><div class="cap"><b>图 8.7</b>　提取的集电极—衬底电容 <i>C</i><sub>sub</sub> 随频率的变化</div></div>
+<p>体电阻 <i>R</i><sub>bk</sub> 与电容 <i>C</i><sub>bk</sub> 可采用半解析方法确定。一旦寄生元件已知，本征模型参数即可用直接提取法确定。图8.8比较了发射极面积 5 × 5 μm<sup>2</sup> 的InP HBT与发射极面积 0.2 × 5.9 μm<sup>2</sup> 的SiGe HBT在正向有源区工作条件下（<i>I</i><sub>B</sub> = 20 μA，<i>V</i><sub>CE</sub> = 1 V）的本征基极电阻 <i>R</i><sub>bi</sub>；可以看出，SiGe HBT的 <i>R</i><sub>bi</sub> 小得多。因此，SiGe HBT的射频噪声性能优于InP HBT。</p>
+<div class="figure"><img src="ch8_figs/Figure_8.8.png" alt="图8.8 InP HBT与SiGe HBT本征基极电阻Rbi的比较"><div class="cap"><b>图 8.8</b>　InP HBT与SiGe HBT本征基极电阻 <i>R</i><sub>bi</sub> 的比较</div></div>
+</section>
+
+<section>
+<h2 id="s8-3">8.3 大信号模型</h2>
+<p>混合T型等效电路比混合π型模型更为常用，因为T型模型与器件物理直接对应。然而混合π型模型更为重要，因为目前最流行的商用电路仿真器所采用的紧凑模型——如SGP、VBIC、MEXTRAM和HICUM——都是基于混合π型拓扑的。</p>
+
+<h3 id="s8-3-1">8.3.1 HICUM</h3>
+<p>HICUM这一名称源自"高电流模型"（high current model）<sup>[8, 9]</sup>，表明HICUM最初是为重点建模高电流密度下的工作区而开发的，这对某些高速应用非常重要。HICUM是一种半物理的紧凑型双极晶体管模型，这意味着部分模型参数可由一组与工艺相关的电学和工艺数据计算得到。HICUM的重要特性如下：</p>
+<p class="step">1. 已计入大注入效应。共射电流增益 <i>β</i> 在大电流下下降，是因为基极—集电极耗尽区中的电子浓度变得可与背景掺杂离子浓度相比拟。</p>
+<p class="step">2. 通过随偏置变化的内部基极电阻计入了发射极电流集边效应。由于发射极边缘与中心之间的基区存在横向压降，边缘处注入的电子多于中心，导致发射极电流向边缘聚集。</p>
+<p class="step">3. 对外部基极—集电极区采用分布式高频模型。</p>
+<p class="step">4. 计入温度依赖性与自热效应。</p>
+<p>图8.9a给出了HICUM大信号等效电路模型（NPN型）。该模型包含一个本征NPN双极晶体管模型、一个寄生PNP双极晶体管模型以及衬底网络。图8.9a中集总元件与电流源的物理含义如下：</p>
+<p class="step"><i>I</i><sub>T</sub>：本征NPN晶体管的集电极—发射极电流</p>
+<p class="step"><i>I</i><sub>AVL</sub>：反偏集电极—基极结处的雪崩倍增电流</p>
+<p class="step"><i>I</i><sub>jBEi</sub>：本征基极—发射极结电流</p>
+<p class="step"><i>I</i><sub>jBEp</sub>：非本征基极—发射极结电流</p>
+<p class="step"><i>I</i><sub>jBCi</sub>：本征基极—集电极结电流</p>
+<p class="step"><i>I</i><sub>jBCx</sub>：非本征基极—集电极结电流</p>
+<p class="step"><i>I</i><sub>BEt</sub>：基极—发射极隧穿电流</p>
+<p class="step"><i>I</i><sub>TS</sub>：非本征PNP晶体管的传输电流</p>
+<p class="step"><i>I</i><sub>jSC</sub>：非本征集电极—衬底电流</p>
+<p class="step"><i>C</i><sub>jS</sub>：非本征集电极—衬底耗尽电容</p>
+<p class="step"><i>C</i><sub>dS</sub>：寄生衬底晶体管的扩散电容</p>
+<p class="step"><i>C</i><sub>jEp</sub>：周边基极—发射极零偏耗尽电容</p>
+<p class="step"><i>C</i><sub>dE</sub>：本征基极—发射极结扩散电容</p>
+<p class="step"><i>C</i><sub>dC</sub>：本征基极—集电极结扩散电容</p>
+<p class="step"><i>C</i><sub>jEi</sub>：本征NPN晶体管的基极—发射极电容</p>
+<p class="step"><i>C</i><sub>jCi</sub>：本征NPN晶体管的基极—集电极电容</p>
+<p class="step"><i>C</i>′<sub>BCx</sub> 与 <i>C</i>″<sub>BCx</sub>：非本征基极—集电极分布电容</p>
+<p class="step"><i>R</i><sub>su</sub>：衬底串联电阻</p>
+<p class="step"><i>C</i><sub>su</sub>：并联电容（由衬底介电常数引起）</p>
+<p class="step"><i>C</i><sub>rBi</sub>：电流集边电容</p>
+<div class="figure"><img src="ch8_figs/Figure_8.9.png" alt="图8.9 HICUM等效电路模型：(a) 大信号模型，(b) 小信号模型"><div class="cap"><b>图 8.9</b>　HICUM等效电路模型：(a) 大信号模型，(b) 小信号模型</div></div>
+<p>图8.9b给出了HICUM小信号等效电路模型，其中大信号与小信号模型参数之间的关系由下列各式给出：</p>
+<div class="eq"><span class="math-display">\[g_{jBEi} = \frac{dI_{jBEi}}{dV_{B&#39;E&#39;}}\]</span><span class="eqno">(8.7)</span></div>
+<div class="eq"><span class="math-display">\[g_{jBCi} = \frac{dI_{jBCi}}{dV_{B&#39;C&#39;}}\]</span><span class="eqno">(8.8)</span></div>
+<div class="eq"><span class="math-display">\[g_{jBCx} = \frac{dI_{jBCx}}{dV_{B^{*}C&#39;}}\]</span><span class="eqno">(8.9)</span></div>
+<div class="eq"><span class="math-display">\[g_{jBEp} = \frac{dI_{jBEp}}{dV_{B^{*}E&#39;}}\]</span><span class="eqno">(8.10)</span></div>
+<div class="eq"><span class="math-display">\[g_{jSC} = \frac{dI_{jSC}}{dV_{B^{*}S&#39;}}\]</span><span class="eqno">(8.11)</span></div>
+<div class="eq"><span class="math-display">\[g_{m} = \frac{\partial I_{T}}{\partial V_{B&#39;E&#39;}}\]</span><span class="eqno">(8.12)</span></div>
+<div class="eq"><span class="math-display">\[g_{o} = \frac{\partial I_{T}}{\partial V_{C&#39;E&#39;}}\]</span><span class="eqno">(8.13)</span></div>
+<div class="eq"><span class="math-display">\[i_{TS} = \frac{\partial I_{TS}}{\partial V_{B^{*}C&#39;}}V_{B^{*}C&#39;} - \frac{\partial I_{TS}}{\partial V_{SC&#39;}}V_{SC&#39;}\]</span><span class="eqno">(8.14)</span></div>
+<p>其中 <i>g</i><sub>jBEi</sub> 为本征基极—发射极结动态电导，<i>g</i><sub>jBCi</sub> 为本征基极—集电极结动态电导，<i>g</i><sub>jBCx</sub> 为非本征基极—集电极结动态电导，<i>g</i><sub>jBEp</sub> 为非本征基极—发射极结动态电导，<i>g</i><sub>jSC</sub> 为非本征集电极—衬底动态电导，<i>g</i><sub>m</sub> 为跨导，<i>g</i><sub>o</sub> 为输出电导。</p>
+
+<h3 id="s8-3-2">8.3.2 MEXTRAM等效电路模型</h3>
+<p>MEXTRAM（most exquisite transistor model，最精巧的晶体管模型）是纵向双极晶体管的紧凑模型，适用于数字与模拟电路设计，并已在大量应用中证明了其精度。相应的大信号等效电路模型如图8.10所示<sup>[10]</sup>。其中各量的含义如下：</p>
+<p class="step"><i>I</i><sub>N</sub>：集电极—发射极电流</p>
+<p class="step"><i>I</i><sub>C1C2</sub>：流经外延层的电流</p>
+<p class="step"><i>I</i><sub>AVL</sub>：反偏集电极—基极结处的雪崩倍增电流</p>
+<p class="step"><i>I</i><sub>B1</sub>：理想基极—发射极电流</p>
+<p class="step"><i>I</i><sub>B2</sub>：非理想基极—发射极电流</p>
+<p class="step"><i>I</i><sub>B3</sub>：理想基极—集电极反向电流</p>
+<p class="step"><i>I</i><sub>EX</sub>：非理想基极—集电极反向电流</p>
+<p class="step"><i>XI</i><sub>EX</sub>：非理想基极—集电极反向电流所占比例</p>
+<p class="step"><i>I</i><sub>SUB</sub>：衬底电流</p>
+<p class="step"><i>XI</i><sub>SUB</sub>：衬底电流所占比例</p>
+<p class="step"><i>I</i><sub>SF</sub>：衬底失效电流</p>
+<p class="step"><i>Q</i><sub>TE</sub>：与基极—发射极扩散电容相关的电荷</p>
+<p class="step"><i>Q</i><sub>TC</sub>：与基极—集电极扩散电容相关的电荷</p>
+<p class="step"><i>Q</i><sub>BE</sub>：与基极—发射极结电容相关的电荷</p>
+<p class="step"><i>Q</i><sub>BC</sub>：与基极—集电极结电容相关的电荷</p>
+<p class="step"><i>Q</i><sub>EPI</sub>：集电极外延层中的电荷</p>
+<p class="step"><i>Q</i><sub>TS</sub>：与集电极—衬底电容相关的电荷</p>
+<div class="figure"><img src="ch8_figs/Figure_8.10.png" alt="图8.10 MEXTRAM等效电路模型"><div class="cap"><b>图 8.10</b>　MEXTRAM等效电路模型</div></div>
+
+</section>
+
+<section>
+<h2 id="s8-4">8.4 小结</h2>
+<p>本章介绍了SiGe HBT的基本工作机理，阐述了其小信号建模与参数提取方法，特别是焊盘寄生的确定方法，并讨论了HICUM与MEXTRAM等常用的大信号等效电路模型。</p>
+</section>
+
+<section>
+<h2 id="s8-ref">参考文献</h2>
+<ol class="refs">
+<li>Washio, K. (2003) SiGe HBT and BiCMOS technologies for optical transmission and wireless communication systems. <i>IEEE Transactions on Electron Devices</i>, 50(3), 656–668.</li>
+<li>Cressler, J.D. (1998) SiGe HBT technology: a new contender for Si-based RF and microwave circuit applications. <i>IEEE Transactions on Microwave Theory and Techniques</i>, 46(5), 572–585.</li>
+<li>Dunn, J.S., Ahlgren, D.C. and Coolbaugh, D.D. (2003) Foundation of RF CMOS and SiGe BiCMOS technologies. <i>IBM Journal of Research &amp; Development</i>, 47(2/3), 101–137.</li>
+<li>Basaran, U., Wieser, N., Feiler, G. and Berroth, M. (2005) Small-signal and high frequency noise modeling of SiGe HBTs. <i>IEEE Transactions on Microwave Theory and Techniques</i>, 53(3), 919–928.</li>
+<li>Yang, T.-R., Tsai, J.M.-L., Ho, C.-L. and Hu, R. (2007) SiGe HBT's small-signal π modeling. <i>IEEE Transactions on Microwave Theory and Techniques</i>, 55(7), 1417–1424.</li>
+<li>Chen, H.-Y., Chen, K.-M., Huang, G.-W. and Chang, C.-Y. (2006) Small-signal modeling of SiGe HBTs using direct parameter-extraction method. <i>IEEE Transactions on Electron Devices</i>, 53(9), 2287–2295.</li>
+<li>Han, B., Cheng, J., Li, S. et al. (2011) An improved small-signal model for SiGe HBTs. <i>International Journal of Electronics</i>, 98(6), 781–791.</li>
+<li>Rein, H.-M., Stübing, H. and Schröter, M. (1985) Verification of the integral charge-control relation for high-speed bipolar transistors at high current densities. <i>IEEE Transactions on Electron Devices</i>, 32(6), 1070–1076.</li>
+<li>Rein, H.-M. and Schröter, M. (1987) A compact physical large-signal model for high-speed bipolar transistors at high current densities—Part II: Two-dimensional model and experimental results. <i>IEEE Transaction on Electron Devices</i>, 34(8), 1752–1761.</li>
+<li>de Graaff, H.C. and Kloosterman, W.J. (1995) Modeling of the collector epilayer of a bipolar transistor in the Mextram model. <i>IEEE Transaction on Electron Devices</i>, 42(2), 274–282.</li>
+</ol>
+</section>
+
+</div>
+</body>
+</html>
